@@ -8,6 +8,7 @@ import {
   prepareBroadcastDispatch,
   sendRecipientChunk,
 } from "./broadcasts.js";
+import { decryptSecret, signPayload } from "./webhook-out.js";
 
 export interface MailJobData {
   to: string;
@@ -206,6 +207,113 @@ export function startChannelInboundWorker(): void {
   });
 }
 
+/* ---------- outbound webhooks ---------- */
+
+export const WEBHOOK_QUEUE = "webhook-deliveries";
+const WEBHOOK_MAX_ATTEMPTS = 5;
+
+let webhookQueue: Queue<{ deliveryId: string }> | null = null;
+let webhookWorker: Worker<{ deliveryId: string }> | null = null;
+
+function getWebhookQueue(): Queue<{ deliveryId: string }> {
+  if (!webhookQueue) {
+    webhookQueue = new Queue<{ deliveryId: string }>(WEBHOOK_QUEUE, { connection: redis() });
+  }
+  return webhookQueue;
+}
+
+async function deliverWebhook(deliveryId: string): Promise<void> {
+  const delivery = await prisma.webhookDelivery.findUnique({
+    where: { id: deliveryId },
+    include: { webhook: true },
+  });
+  if (!delivery || delivery.deliveredAt || !delivery.webhook.active) return;
+
+  const body = JSON.stringify(delivery.payload);
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    "x-konvo-event": delivery.event,
+    "x-konvo-delivery": delivery.id,
+    "user-agent": "Konvo-Webhook/1.0",
+  };
+  if (delivery.webhook.secretEncrypted) {
+    try {
+      const secret = decryptSecret(delivery.webhook.secretEncrypted);
+      headers["x-konvo-signature"] = signPayload(secret, body);
+    } catch {
+      // Secret undecryptable — deliver unsigned rather than drop the event.
+    }
+  }
+
+  const attempts = delivery.attempts + 1;
+  try {
+    const res = await fetch(delivery.webhook.url, {
+      method: "POST",
+      headers,
+      body,
+      signal: AbortSignal.timeout(10_000),
+      redirect: "manual",
+    });
+    if (res.ok) {
+      await prisma.webhookDelivery.update({
+        where: { id: delivery.id },
+        data: { status: res.status, attempts, deliveredAt: new Date(), lastError: null },
+      });
+      return;
+    }
+    throw new Error(`HTTP ${res.status}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Delivery failed";
+    const exhausted = attempts >= WEBHOOK_MAX_ATTEMPTS;
+    await prisma.webhookDelivery.update({
+      where: { id: delivery.id },
+      data: {
+        attempts,
+        lastError: message.slice(0, 500),
+        ...(exhausted
+          ? {}
+          : { nextRetryAt: new Date(Date.now() + attempts * 60_000) }),
+      },
+    });
+    if (!exhausted) {
+      // Re-enqueue with delay via BullMQ in non-test envs; inline path rethrows.
+      if (!isTest && config.NODE_ENV !== "development") {
+        await getWebhookQueue().add(
+          "deliver",
+          { deliveryId },
+          { delay: attempts * 60_000, attempts: 1 },
+        );
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
+async function processWebhookJob(job: Job<{ deliveryId: string }>): Promise<void> {
+  await deliverWebhook(job.data.deliveryId);
+}
+
+/** Enqueue (or inline-run) a webhook delivery. */
+export async function enqueueWebhookDelivery(deliveryId: string): Promise<void> {
+  if (isTest || config.NODE_ENV === "development") {
+    await deliverWebhook(deliveryId);
+    return;
+  }
+  await getWebhookQueue().add("deliver", { deliveryId }, { attempts: 1 });
+}
+
+/** Start the webhook delivery worker. Called once from app.ts. */
+export function startWebhookWorker(): void {
+  if (webhookWorker || isTest) return;
+  webhookWorker = new Worker<{ deliveryId: string }>(WEBHOOK_QUEUE, processWebhookJob, {
+    connection: redis(),
+  });
+  webhookWorker.on("failed", (job, err) => {
+    console.error(`[webhooks] delivery ${job?.data.deliveryId ?? "?"} failed:`, err.message);
+  });
+}
+
 /** Start the mail worker. Called once from app.ts; safe to call repeatedly. */
 export function startMailWorker(): void {
   if (mailWorker || isTest) return;
@@ -222,11 +330,15 @@ export async function closeQueues(): Promise<void> {
   await channelInboundQueue?.close();
   await broadcastWorker?.close();
   await broadcastQueue?.close();
+  await webhookWorker?.close();
+  await webhookQueue?.close();
   mailWorker = null;
   mailQueue = null;
   channelInboundWorker = null;
   channelInboundQueue = null;
   broadcastWorker = null;
   broadcastQueue = null;
+  webhookWorker = null;
+  webhookQueue = null;
   await redis().quit().catch(() => undefined);
 }

@@ -3,9 +3,14 @@ import type { ApiError } from "./types";
 export const BASE_URL: string = import.meta.env["VITE_API_BASE_URL"] ?? "/api";
 
 let tokenGetter: () => string | null = () => null;
+let tokenUpdater: (token: string) => void = () => {};
 /** Auth store registers how to read the current token. */
 export function setTokenGetter(fn: () => string | null) {
   tokenGetter = fn;
+}
+/** Auth store registers how to persist a refreshed token. */
+export function setTokenUpdater(fn: (token: string) => void) {
+  tokenUpdater = fn;
 }
 /** Current auth token — used by transports that can't set headers (SSE). */
 export function getAuthToken(): string | null {
@@ -60,6 +65,42 @@ interface RequestOptions {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const AUTH_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/refresh",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/check-slug",
+];
+
+let refreshPromise: Promise<boolean> | null = null;
+
+/** Exchange the httpOnly refresh cookie for a new access token. */
+function tryRefresh(): Promise<boolean> {
+  refreshPromise ??= (async () => {
+    try {
+      const res = await fetch(new URL(`${BASE_URL}/auth/refresh`, window.location.origin), {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) return false;
+      const data = (await res.json()) as { token?: string };
+      if (!data.token) return false;
+      tokenUpdater(data.token);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      // Allow a later retry once this attempt settles.
+      setTimeout(() => {
+        refreshPromise = null;
+      }, 0);
+    }
+  })();
+  return refreshPromise;
+}
+
 export async function http<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { method = "GET", body, query, signal } = opts;
   // Only idempotent requests retry by default.
@@ -72,19 +113,25 @@ export async function http<T>(path: string, opts: RequestOptions = {}): Promise<
     for (const [k, v] of Object.entries(query))
       if (v !== undefined) url.searchParams.set(k, String(v));
 
-  const headers: Record<string, string> = { Accept: "application/json" };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
-  const token = tokenGetter();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
+  let refreshed = false;
   for (let attempt = 0; ; attempt++) {
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    const token = tokenGetter();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
     try {
       const res = await fetch(url, {
         method,
         headers,
+        credentials: "include",
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         ...(signal ? { signal } : {}),
       });
+      // Access tokens live 15m — refresh once via the httpOnly cookie and retry.
+      if (res.status === 401 && !refreshed && !AUTH_PATHS.includes(path)) {
+        refreshed = true;
+        if (await tryRefresh()) continue;
+      }
       const text = await res.text();
       const data: unknown = text ? JSON.parse(text) : undefined;
       if (!res.ok) {
@@ -119,6 +166,7 @@ export async function httpText(path: string, query?: RequestOptions["query"]): P
   const token = tokenGetter();
   const res = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: "include",
   });
   if (!res.ok) {
     const text = await res.text();

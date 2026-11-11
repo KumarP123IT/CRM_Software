@@ -189,7 +189,50 @@ export const httpApi: Api = {
   analytics: {
     overview: (days) => http("/analytics/overview", { query: { days } }),
   },
-  bots: { list: () => http("/bots") },
+  automation: {
+    businessHours: () => http("/automation/business-hours"),
+    updateBusinessHours: (input) =>
+      http("/automation/business-hours", { method: "PUT", body: input }),
+    autoReplies: () => http("/automation/auto-replies"),
+    createAutoReply: (input) => http("/automation/auto-replies", { method: "POST", body: input }),
+    updateAutoReply: (id, input) =>
+      http(`/automation/auto-replies/${id}`, { method: "PATCH", body: input }),
+    removeAutoReply: (id) => http(`/automation/auto-replies/${id}`, { method: "DELETE" }),
+  },
+  ads: {
+    list: () => http("/ads"),
+    create: (input) => http("/ads", { method: "POST", body: input }),
+    update: (id, input) => http(`/ads/${id}`, { method: "PATCH", body: input }),
+    remove: (id) => http(`/ads/${id}`, { method: "DELETE" }),
+  },
+  webhookEndpoints: {
+    list: () => http("/webhook-endpoints"),
+    create: (input) => http("/webhook-endpoints", { method: "POST", body: input }),
+    update: (id, input) => http(`/webhook-endpoints/${id}`, { method: "PATCH", body: input }),
+    remove: (id) => http(`/webhook-endpoints/${id}`, { method: "DELETE" }),
+    rotateSecret: (id) => http(`/webhook-endpoints/${id}/rotate-secret`, { method: "POST" }),
+    test: (id) => http(`/webhook-endpoints/${id}/test`, { method: "POST" }),
+    deliveries: (id) => http(`/webhook-endpoints/${id}/deliveries`),
+  },
+  apiKeys: {
+    list: () => http("/api-keys"),
+    create: (input) => http("/api-keys", { method: "POST", body: input }),
+    revoke: (id) => http(`/api-keys/${id}/revoke`, { method: "POST" }),
+    remove: (id) => http(`/api-keys/${id}`, { method: "DELETE" }),
+  },
+  security: {
+    totpStatus: () => http("/auth/2fa/status"),
+    totpSetup: () => http("/auth/2fa/setup", { method: "POST" }),
+    totpEnable: (code) => http("/auth/2fa/enable", { method: "POST", body: { code } }),
+    totpDisable: (code) => http("/auth/2fa/disable", { method: "POST", body: { code } }),
+    changePassword: (input) => http("/auth/password", { method: "POST", body: input }),
+  },
+  bots: {
+    list: () => http("/bots"),
+    create: (input) => http("/bots", { method: "POST", body: input }),
+    update: (id, input) => http(`/bots/${id}`, { method: "PATCH", body: input }),
+    remove: (id) => http(`/bots/${id}`, { method: "DELETE" }),
+  },
   team: {
     list: () => http("/team"),
     teams: () => http("/teams"),
@@ -202,6 +245,11 @@ export const httpApi: Api = {
   },
   integrations: {
     saveOpenAiKey: (key) => http("/integrations/openai", { method: "POST", body: { key } }),
+    openaiStatus: () => http("/integrations/openai"),
+    removeOpenAiKey: () => http("/integrations/openai", { method: "DELETE" }),
+    testOpenAi: () => http("/integrations/openai/test", { method: "POST" }),
+    suggestReplies: (conversationId) =>
+      http("/integrations/ai/suggest", { method: "POST", body: { conversationId } }),
   },
   inboxes: {
     list: () => http("/channels"),

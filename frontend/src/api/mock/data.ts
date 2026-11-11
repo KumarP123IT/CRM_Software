@@ -415,21 +415,31 @@ export const bots: Bot[] = [
   {
     id: "bt1",
     name: "Welcome & menu",
-    trigger: "First message",
+    trigger: {
+      type: "first_message",
+      response: "Hi! Thanks for reaching out — here's our menu: …",
+    },
     active: true,
     runs: 1284,
   },
   {
     id: "bt2",
     name: "Order status lookup",
-    trigger: "Keyword: status",
+    trigger: {
+      type: "keyword",
+      keywords: ["status", "order", "track"],
+      response: "You can check your order status in the app under Orders.",
+    },
     active: true,
     runs: 532,
   },
   {
     id: "bt3",
     name: "After-hours reply",
-    trigger: "Outside 9am–10pm",
+    trigger: {
+      type: "outside_hours",
+      response: "We're offline right now — leave a message and we'll reply soon.",
+    },
     active: false,
     runs: 211,
   },

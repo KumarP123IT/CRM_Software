@@ -10,6 +10,7 @@ import {
   NotebookPen,
   Search,
   Send,
+  Sparkles,
   UserPlus,
   Zap,
 } from "lucide-react";
@@ -642,6 +643,13 @@ function Composer({
   const qc = useQueryClient();
   const [body, setBody] = useState("");
   const [noteMode, setNoteMode] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[] | null>(null);
+
+  const suggest = useMutation({
+    mutationFn: () => api.integrations.suggestReplies(conversationId),
+    onSuccess: (r) => setSuggestions(r.suggestions),
+    onError: () => toast.error("AI suggestions unavailable — check Settings → OpenAI"),
+  });
 
   const send = useMutation({
     mutationFn: () =>
@@ -711,6 +719,47 @@ function Composer({
                   <span className="line-clamp-2 text-xs text-muted-foreground">{qr.body}</span>
                 </DropdownMenuItem>
               ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        {!noteMode && (
+          <DropdownMenu
+            onOpenChange={(open) => {
+              if (!open) setSuggestions(null);
+            }}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={disabled}
+                loading={suggest.isPending}
+                onClick={() => {
+                  if (!suggestions) suggest.mutate();
+                }}
+                title="AI suggested replies"
+              >
+                <Sparkles className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              {(suggestions ?? []).map((s, i) => (
+                <DropdownMenuItem
+                  key={i}
+                  onSelect={() => {
+                    setBody(s);
+                    setSuggestions(null);
+                  }}
+                  className="text-xs"
+                >
+                  {s}
+                </DropdownMenuItem>
+              ))}
+              {suggest.isPending && (
+                <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                  Thinking…
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

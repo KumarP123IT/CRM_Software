@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BadgeIndianRupee } from "lucide-react";
-import { ComingSoon } from "@/features/placeholder/ComingSoon";
+import { Ads } from "@/features/ads/Ads";
 
 export const Route = createFileRoute("/_authenticated/ads")({
   head: () => ({
@@ -11,14 +11,5 @@ export const Route = createFileRoute("/_authenticated/ads")({
       { property: "og:description", content: "Ads that open a WhatsApp chat." },
     ],
   }),
-  component: () => (
-    <ComingSoon
-      title="Ads"
-      description="Ads that open a WhatsApp chat."
-      icon={BadgeIndianRupee}
-      emptyTitle="Nothing here yet"
-      emptyText="Ads that open a WhatsApp chat."
-      cta="Get started"
-    />
-  ),
+  component: Ads,
 });

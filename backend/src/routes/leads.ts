@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { audit } from "../lib/audit.js";
 import { badRequest, notFound } from "../lib/errors.js";
+import { emitWorkspaceEvent } from "../lib/webhook-out.js";
 import {
   requireAuth,
   resolveWorkspace,
@@ -37,7 +38,7 @@ const STAGES = ["new", "contacted", "qualified", "proposal", "won", "lost"] as c
 
 const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(30),
+  pageSize: z.coerce.number().int().min(1).max(200).default(30),
   search: z.string().trim().max(200).optional(),
   stage: z.enum(STAGES).optional(),
   ownerId: z.string().optional(),
@@ -137,6 +138,11 @@ export async function leadRoutes(fastify: FastifyInstance) {
         targetType: "lead",
         targetId: lead.id,
         ip: request.ip,
+      });
+      void emitWorkspaceEvent(ws, "lead.created", {
+        leadId: lead.id,
+        contactId: lead.contactId,
+        stage: lead.stage,
       });
       return reply.status(201).send(toApiLead(lead));
     },

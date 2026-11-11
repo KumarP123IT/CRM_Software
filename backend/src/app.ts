@@ -25,11 +25,19 @@ import { leadRoutes } from "./routes/leads.js";
 import { callRoutes } from "./routes/calls.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { analyticsRoutes } from "./routes/analytics.js";
+import { automationRoutes } from "./routes/automation.js";
+import { botRoutes } from "./routes/bots.js";
+import { integrationRoutes } from "./routes/integrations.js";
+import { adRoutes } from "./routes/ads.js";
+import { webhookEndpointRoutes } from "./routes/webhook-endpoints.js";
+import { apiKeyRoutes } from "./routes/api-keys.js";
+import { securityRoutes } from "./routes/security.js";
 import { healthRoutes } from "./routes/health.js";
 import {
   startBroadcastWorker,
   startChannelInboundWorker,
   startMailWorker,
+  startWebhookWorker,
 } from "./lib/jobs.js";
 
 declare module "fastify" {
@@ -108,6 +116,13 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
       await api.register(callRoutes, { prefix: "/calls" });
       await api.register(dashboardRoutes, { prefix: "/dashboard" });
       await api.register(analyticsRoutes, { prefix: "/analytics" });
+      await api.register(automationRoutes, { prefix: "/automation" });
+      await api.register(botRoutes, { prefix: "/bots" });
+      await api.register(integrationRoutes, { prefix: "/integrations" });
+      await api.register(adRoutes, { prefix: "/ads" });
+      await api.register(webhookEndpointRoutes, { prefix: "/webhook-endpoints" });
+      await api.register(apiKeyRoutes, { prefix: "/api-keys" });
+      await api.register(securityRoutes, { prefix: "/auth" });
       await api.register(templateRoutes, { prefix: "/templates" });
       await api.register(broadcastRoutes, { prefix: "/broadcasts" });
       await api.register(campaignRoutes, { prefix: "/campaigns" });
@@ -118,5 +133,6 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   startMailWorker();
   startChannelInboundWorker();
   startBroadcastWorker();
+  startWebhookWorker();
   return app;
 }

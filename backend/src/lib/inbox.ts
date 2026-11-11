@@ -1,5 +1,7 @@
 import type { ChannelAccount, Conversation, Message, Prisma } from "@prisma/client";
 import { prisma } from "./prisma.js";
+import { runAutomation } from "./automation.js";
+import { emitWorkspaceEvent } from "./webhook-out.js";
 import { decryptSecret } from "./crypto.js";
 import { normalizePhone } from "./phone.js";
 import { publishInbox } from "./events.js";
@@ -121,6 +123,11 @@ async function resolveContact(
       externalId: event.senderId,
     },
   });
+  void emitWorkspaceEvent(account.workspaceId, "contact.created", {
+    contactId: contact.id,
+    channel: account.type,
+    source: "inbound",
+  });
   return contact.id;
 }
 
@@ -148,6 +155,11 @@ async function resolveConversation(
       status: "open",
       windowClosesAt: account.type === "whatsapp" ? new Date(now.getTime() + WHATSAPP_WINDOW_MS) : null,
     },
+  });
+  void emitWorkspaceEvent(account.workspaceId, "conversation.created", {
+    conversationId: conversation.id,
+    contactId,
+    channel: account.type,
   });
 
   // Auto-assign new conversations to the least-loaded workspace member.
@@ -259,6 +271,20 @@ export async function ingestInbound(
       conversationId: conversation.id,
       message: toApiMessage(message),
     });
+    void emitWorkspaceEvent(account.workspaceId, "message.created", {
+      conversationId: conversation.id,
+      messageId: message.id,
+      direction: "in",
+      kind: message.kind,
+      preview: preview.slice(0, BODY_PREVIEW_LEN),
+    });
+
+    // Automation: auto-replies, bots, business-hours away messages.
+    try {
+      await runAutomation(account.workspaceId, conversation.id, message);
+    } catch {
+      // Automation failures must not break message ingest.
+    }
   }
   return stored;
 }
@@ -321,7 +347,7 @@ export interface SendMessageRequest {
   templateId?: string | undefined;
 }
 
-async function recipientExternalId(
+export async function recipientExternalId(
   account: ChannelAccount,
   contactId: string,
 ): Promise<string | null> {
@@ -439,6 +465,13 @@ export async function sendReply(
     type: "message",
     conversationId,
     message: toApiMessage(message),
+  });
+  void emitWorkspaceEvent(workspaceId, "message.created", {
+    conversationId,
+    messageId: message.id,
+    direction: "out",
+    kind: message.kind,
+    preview: (input.body || `[${input.kind}]`).slice(0, BODY_PREVIEW_LEN),
   });
   return message;
 }

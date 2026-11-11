@@ -86,14 +86,14 @@ async function main() {
   for (const c of contactsData) {
     const contact = await prisma.contact.upsert({
       where: { workspaceId_phone: { workspaceId: workspace.id, phone: c.phone } },
-      update: { name: c.name, email: c.email, city: c.city },
+      update: { name: c.name, email: c.email ?? null, city: c.city },
       create: {
         workspaceId: workspace.id,
         phone: c.phone,
         name: c.name,
-        email: c.email,
+        email: c.email ?? null,
         city: c.city,
-        company: c.company,
+        company: c.company ?? null,
         source: c.source,
         optedOut: c.optedOut,
         country: "IN",
@@ -155,7 +155,7 @@ async function main() {
   await prisma.auditLog.create({
     data: {
       workspaceId: workspace.id,
-      userId: users[0]?.id,
+      userId: users[0]?.id ?? null,
       action: "seed.completed",
       meta: { demoPassword: DEMO_PASSWORD },
     },

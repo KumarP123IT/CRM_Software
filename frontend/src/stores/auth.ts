@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Role, User } from "@/api/types";
-import { setTokenGetter } from "@/api/http";
+import { setTokenGetter, setTokenUpdater } from "@/api/http";
 
 interface AuthState {
   user: User | null;
@@ -32,6 +32,7 @@ export const useAuth = create<AuthState>()(
 );
 
 setTokenGetter(() => useAuth.getState().token);
+setTokenUpdater((token) => useAuth.setState({ token }));
 
 export const useEffectiveRole = (): Role => {
   const { user, previewRole } = useAuth();

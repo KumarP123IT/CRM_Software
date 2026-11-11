@@ -11,6 +11,7 @@ import {
   toApiConversation,
   toApiMessage,
 } from "../lib/inbox.js";
+import { emitWorkspaceEvent } from "../lib/webhook-out.js";
 import {
   requireAuth,
   resolveWorkspace,
@@ -164,6 +165,10 @@ export async function conversationRoutes(fastify: FastifyInstance) {
         where: { id: updated.id },
         include: conversationInclude,
       });
+      void emitWorkspaceEvent(request.workspaceId, "conversation.assigned", {
+        conversationId: id,
+        assigneeId,
+      });
       return toApiConversation(full);
     },
   );
@@ -180,6 +185,11 @@ export async function conversationRoutes(fastify: FastifyInstance) {
     const full = await prisma.conversation.findUniqueOrThrow({
       where: { id },
       include: conversationInclude,
+    });
+    void emitWorkspaceEvent(request.workspaceId, "conversation.status_changed", {
+      conversationId: id,
+      status,
+      previousStatus: conv.status,
     });
     return toApiConversation(full);
   });

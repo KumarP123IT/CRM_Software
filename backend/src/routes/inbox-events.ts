@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { config } from "../config.js";
 import { resolveWorkspace } from "../plugins/auth.js";
 import { subscribeInbox } from "../lib/events.js";
 
@@ -30,11 +31,18 @@ export async function inboxEventRoutes(fastify: FastifyInstance) {
 
     reply.hijack();
     const res = reply.raw;
+    // hijack() bypasses @fastify/cors hooks — set ACAO manually so EventSource
+    // (a credentialed cross-origin request) isn't blocked.
+    const origin = request.headers.origin;
+    const allowed = config.CORS_ORIGIN.split(",").map((s) => s.trim());
+    const allowOrigin = origin && allowed.includes(origin) ? origin : allowed[0];
     res.writeHead(200, {
       "content-type": "text/event-stream",
       "cache-control": "no-cache, no-transform",
       connection: "keep-alive",
       "x-accel-buffering": "no",
+      "access-control-allow-origin": allowOrigin ?? "*",
+      vary: "Origin",
     });
     res.write("retry: 3000\n\n");
 

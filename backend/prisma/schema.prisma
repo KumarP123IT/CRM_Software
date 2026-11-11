@@ -30,6 +30,9 @@ model Workspace {
   slug      String   @unique
   plan      Plan     @default(Starter)
   city      String   @default("")
+  // AES-256-GCM encrypted OpenAI API key for AI features (suggest replies, summaries).
+  openaiKeyEncrypted String?
+  openaiKeyMasked    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -51,6 +54,9 @@ model Workspace {
   apiKeys         ApiKey[]
   webhooks        Webhook[]
   tags            Tag[]
+  businessHours   BusinessHours?
+  autoReplies     AutoReply[]
+  ads             Ad[]
 }
 
 model User {
@@ -61,6 +67,9 @@ model User {
   avatarColor         Int       @default(0)
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
+  // AES-256-GCM encrypted TOTP secret; totpEnabled gates the login challenge.
+  totpSecretEncrypted String?
+  totpEnabled         Boolean   @default(false)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -570,6 +579,53 @@ model Bot {
   trigger     Json     @default("{}")
   active      Boolean  @default(true)
   runs        Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model BusinessHours {
+  id          String   @id @default(cuid())
+  workspaceId String   @unique
+  enabled     Boolean  @default(true)
+  timezone    String   @default("UTC")
+  // [{ day: 0-6 (Sun-Sat), open: "HH:MM", close: "HH:MM" }] — days absent are closed.
+  hours       Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model AutoReply {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String   @default("")
+  // "first_message" | "keyword" | "outside_hours"
+  trigger     String   @default("keyword")
+  keywords    String[] @default([])
+  response    String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, active])
+}
+
+model Ad {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  // WhatsApp number in international digits (no +).
+  phone       String
+  message     String   @default("")
+  active      Boolean  @default(true)
+  clicks      Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

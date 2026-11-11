@@ -2,6 +2,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import type { Role } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
+import { sha256 } from "../lib/crypto.js";
 import { can, type Permission } from "../lib/permissions.js";
 import { unauthorized, forbidden, notFound, AppError } from "../lib/errors.js";
 
@@ -11,6 +12,8 @@ declare module "fastify" {
     /** Resolved workspace id, or "" when not yet resolved. */
     workspaceId: string;
     membershipRole?: Role;
+    /** Set when the request authenticated via X-Api-Key instead of a user session. */
+    apiKey?: { id: string; workspaceId: string; scopes: string[] };
   }
 }
 
@@ -24,19 +27,43 @@ export const authenticate = fp(async (fastify) => {
   fastify.decorateRequest("userId", "");
   fastify.decorateRequest("workspaceId", "");
   fastify.decorateRequest("membershipRole", undefined);
+  fastify.decorateRequest("apiKey", undefined);
 
   fastify.addHook("preHandler", async (request: FastifyRequest) => {
     const cookieToken = request.cookies["access_token"];
     const authHeader = request.headers.authorization;
     const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
     const token = cookieToken ?? bearer;
-    if (!token) return; // leave userId empty — route-level guards decide
+    if (token) {
+      try {
+        const payload = fastify.jwt.verify<JwtPayload>(token);
+        request.userId = payload.sub;
+      } catch {
+        // invalid/expired token — treated as unauthenticated
+      }
+    }
 
-    try {
-      const payload = fastify.jwt.verify<JwtPayload>(token);
-      request.userId = payload.sub;
-    } catch {
-      // invalid/expired token — treated as unauthenticated
+    // API-key auth: X-Api-Key header, SHA-256 lookup. Only used when no
+    // valid user session token was presented.
+    if (!request.userId) {
+      const apiKeyHeader = request.headers["x-api-key"];
+      if (typeof apiKeyHeader === "string" && apiKeyHeader) {
+        const record = await prisma.apiKey.findUnique({
+          where: { keyHash: sha256(apiKeyHeader) },
+          select: { id: true, workspaceId: true, scopes: true, revokedAt: true },
+        });
+        if (record && !record.revokedAt) {
+          request.userId = `apikey:${record.id}`;
+          request.apiKey = {
+            id: record.id,
+            workspaceId: record.workspaceId,
+            scopes: record.scopes.split(",").filter(Boolean),
+          };
+          void prisma.apiKey
+            .update({ where: { id: record.id }, data: { lastUsedAt: new Date() } })
+            .catch(() => {});
+        }
+      }
     }
   });
 });
@@ -54,6 +81,18 @@ export async function requireAuth(request: FastifyRequest, _reply: FastifyReply)
  */
 export async function resolveWorkspace(request: FastifyRequest, _reply: FastifyReply) {
   if (!request.userId) throw unauthorized();
+
+  // API-key requests resolve straight to their workspace — no membership row.
+  // Scope "read" restricts to safe methods; "write" maps to the agent role.
+  if (request.apiKey) {
+    request.workspaceId = request.apiKey.workspaceId;
+    request.membershipRole = request.apiKey.scopes.includes("write") ? "agent" : "readonly";
+    const safe = ["GET", "HEAD", "OPTIONS"].includes(request.method);
+    if (!safe && !request.apiKey.scopes.includes("write")) {
+      throw forbidden("API key scope is read-only");
+    }
+    return;
+  }
 
   const params = request.params as Record<string, unknown>;
   const query = request.query as Record<string, unknown>;

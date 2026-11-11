@@ -1,6 +1,10 @@
 import type {
+  Ad,
   AnalyticsOverview,
   Api,
+  ApiKey,
+  AutoReply,
+  BusinessHoursConfig,
   Broadcast,
   BroadcastListParams,
   BroadcastRecipient,
@@ -13,6 +17,9 @@ import type {
   Channel,
   ConnectInboxInput,
   Contact,
+  CreateAdInput,
+  CreateAutoReplyInput,
+  CreateBotInput,
   ContactGroup,
   ContactListParams,
   Conversation,
@@ -34,6 +41,10 @@ import type {
   Page,
   Tag,
   Template,
+  UpdateAdInput,
+  UpdateAutoReplyInput,
+  WebhookEndpoint,
+  UpdateBotInput,
   UpdateBroadcastInput,
   UpdateCallReminderInput,
   UpdateCampaignInput,
@@ -173,6 +184,94 @@ const callLogStore: CallLog[] = [
     at: new Date(Date.now() - 3600_000 * 5).toISOString(),
   },
 ];
+
+const businessHoursStore: BusinessHoursConfig = {
+  enabled: true,
+  timezone: "Asia/Kolkata",
+  hours: [
+    { day: 1, open: "09:00", close: "21:00" },
+    { day: 2, open: "09:00", close: "21:00" },
+    { day: 3, open: "09:00", close: "21:00" },
+    { day: 4, open: "09:00", close: "21:00" },
+    { day: 5, open: "09:00", close: "21:00" },
+    { day: 6, open: "10:00", close: "18:00" },
+  ],
+};
+
+const autoReplyStore: AutoReply[] = [
+  {
+    id: "ar1",
+    name: "Welcome",
+    trigger: "first_message",
+    keywords: [],
+    response: "Hi! Thanks for reaching out — how can we help?",
+    active: true,
+    createdAt: new Date(Date.now() - 86400_000 * 20).toISOString(),
+    updatedAt: new Date(Date.now() - 86400_000 * 20).toISOString(),
+  },
+  {
+    id: "ar2",
+    name: "Pricing question",
+    trigger: "keyword",
+    keywords: ["price", "cost", "rate"],
+    response: "Sure — our pricing starts at ₹499/month. Want me to send details?",
+    active: true,
+    createdAt: new Date(Date.now() - 86400_000 * 10).toISOString(),
+    updatedAt: new Date(Date.now() - 86400_000 * 10).toISOString(),
+  },
+];
+
+let openaiKey: { masked: string } | null = null;
+
+const adStore: Ad[] = [
+  {
+    id: "ad1",
+    name: "Diwali offer — WhatsApp",
+    phone: "919876543210",
+    message: "Hi! I'm interested in the Diwali offer.",
+    active: true,
+    clicks: 37,
+    createdAt: new Date(Date.now() - 86400_000 * 6).toISOString(),
+    updatedAt: new Date(Date.now() - 86400_000 * 6).toISOString(),
+    waLink: "https://wa.me/919876543210?text=Hi!%20I'm%20interested%20in%20the%20Diwali%20offer.",
+  },
+];
+
+function waLink(phone: string, message: string): string {
+  const base = `https://wa.me/${phone.replace(/[^\d]/g, "")}`;
+  return message ? `${base}?text=${encodeURIComponent(message)}` : base;
+}
+
+function adView(a: Ad): Ad {
+  return { ...a, waLink: waLink(a.phone, a.message) };
+}
+
+const webhookStore: WebhookEndpoint[] = [
+  {
+    id: "wh_ep1",
+    url: "https://example.in/hooks/konvo",
+    events: "message.created,conversation.assigned",
+    active: true,
+    hasSecret: true,
+    deliveryCount: 128,
+    createdAt: new Date(Date.now() - 86400_000 * 14).toISOString(),
+    updatedAt: new Date(Date.now() - 86400_000 * 14).toISOString(),
+  },
+];
+
+const apiKeyStore: ApiKey[] = [
+  {
+    id: "ak1",
+    name: "Zapier sync",
+    prefix: "kv_abc123def4",
+    scopes: ["read"],
+    lastUsedAt: new Date(Date.now() - 3600_000).toISOString(),
+    revokedAt: null,
+    createdAt: new Date(Date.now() - 86400_000 * 30).toISOString(),
+  },
+];
+
+let totpEnabled = false;
 
 function leadView(l: Lead): Lead {
   const contact = contacts.find((c) => c.id === l.contactId);
@@ -1526,10 +1625,267 @@ export const mockApi: Api = {
       };
     },
   },
+  ads: {
+    async list() {
+      await latency();
+      return adStore.map(adView);
+    },
+    async create(input: CreateAdInput) {
+      await latency();
+      const now = new Date().toISOString();
+      const ad: Ad = {
+        id: `ad_${Date.now()}`,
+        name: input.name,
+        phone: input.phone.replace(/[^\d]/g, ""),
+        message: input.message ?? "",
+        active: input.active ?? true,
+        clicks: 0,
+        createdAt: now,
+        updatedAt: now,
+        waLink: "",
+      };
+      adStore.unshift(ad);
+      return adView(ad);
+    },
+    async update(id, input: UpdateAdInput) {
+      await latency();
+      const a = adStore.find((x) => x.id === id);
+      if (!a) notFound("Ad");
+      if (input.name !== undefined) a.name = input.name;
+      if (input.phone !== undefined) a.phone = input.phone.replace(/[^\d]/g, "");
+      if (input.message !== undefined) a.message = input.message;
+      if (input.active !== undefined) a.active = input.active;
+      a.updatedAt = new Date().toISOString();
+      return adView(a);
+    },
+    async remove(id) {
+      await latency();
+      const i = adStore.findIndex((x) => x.id === id);
+      if (i === -1) notFound("Ad");
+      adStore.splice(i, 1);
+    },
+  },
+  webhookEndpoints: {
+    async list() {
+      await latency();
+      return webhookStore.map((w) => ({ ...w }));
+    },
+    async create(input) {
+      await latency();
+      const now = new Date().toISOString();
+      const hook: WebhookEndpoint = {
+        id: `wh_${Date.now()}`,
+        url: input.url,
+        events: input.events.join(","),
+        active: input.active ?? true,
+        hasSecret: true,
+        deliveryCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+      webhookStore.unshift(hook);
+      return { ...hook, secret: `whsec_${Math.random().toString(36).slice(2, 18)}` };
+    },
+    async update(id, input) {
+      await latency();
+      const w = webhookStore.find((x) => x.id === id);
+      if (!w) notFound("Webhook");
+      if (input.url !== undefined) w.url = input.url;
+      if (input.events !== undefined) w.events = input.events.join(",");
+      if (input.active !== undefined) w.active = input.active;
+      w.updatedAt = new Date().toISOString();
+      return { ...w };
+    },
+    async remove(id) {
+      await latency();
+      const i = webhookStore.findIndex((x) => x.id === id);
+      if (i === -1) notFound("Webhook");
+      webhookStore.splice(i, 1);
+    },
+    async rotateSecret(id) {
+      await latency();
+      const w = webhookStore.find((x) => x.id === id);
+      if (!w) notFound("Webhook");
+      return { secret: `whsec_${Math.random().toString(36).slice(2, 18)}` };
+    },
+    async test(id) {
+      await latency();
+      const w = webhookStore.find((x) => x.id === id);
+      if (!w) notFound("Webhook");
+      w.deliveryCount += 1;
+      return { deliveryId: `del_${Date.now()}` };
+    },
+    async deliveries() {
+      await latency();
+      return [
+        {
+          id: "del1",
+          event: "message.created",
+          status: 200,
+          attempts: 1,
+          deliveredAt: new Date().toISOString(),
+          lastError: null,
+          createdAt: new Date().toISOString(),
+        },
+      ];
+    },
+  },
+  apiKeys: {
+    async list() {
+      await latency();
+      return apiKeyStore.map((k) => ({ ...k, scopes: [...k.scopes] }));
+    },
+    async create(input) {
+      await latency();
+      const key = `kv_mock${Math.random().toString(36).slice(2, 14)}`;
+      const rec: ApiKey = {
+        id: `ak_${Date.now()}`,
+        name: input.name,
+        prefix: key.slice(0, 12),
+        scopes: input.scopes ?? ["read"],
+        lastUsedAt: null,
+        revokedAt: null,
+        createdAt: new Date().toISOString(),
+      };
+      apiKeyStore.unshift(rec);
+      return { ...rec, key };
+    },
+    async revoke(id) {
+      await latency();
+      const k = apiKeyStore.find((x) => x.id === id);
+      if (!k) notFound("API key");
+      k.revokedAt = new Date().toISOString();
+      return { ...k };
+    },
+    async remove(id) {
+      await latency();
+      const i = apiKeyStore.findIndex((x) => x.id === id);
+      if (i === -1) notFound("API key");
+      apiKeyStore.splice(i, 1);
+    },
+  },
+  security: {
+    async totpStatus() {
+      await latency();
+      return { enabled: totpEnabled };
+    },
+    async totpSetup() {
+      await latency();
+      return {
+        secret: "JBSWY3DPEHPK3PXP",
+        otpauthUrl: "otpauth://totp/Konvo:user%40demo.in?secret=JBSWY3DPEHPK3PXP",
+      };
+    },
+    async totpEnable(code) {
+      await latency();
+      if (code !== "123456") badRequest("invalid_code", "Invalid code");
+      totpEnabled = true;
+      return { enabled: true };
+    },
+    async totpDisable(code) {
+      await latency();
+      if (code !== "123456") badRequest("invalid_code", "Invalid code");
+      totpEnabled = false;
+      return { enabled: false };
+    },
+    async changePassword() {
+      await latency();
+      return { ok: true };
+    },
+  },
+  automation: {
+    async businessHours() {
+      await latency();
+      return { ...businessHoursStore, hours: businessHoursStore.hours.map((h) => ({ ...h })) };
+    },
+    async updateBusinessHours(input: BusinessHoursConfig) {
+      await latency();
+      businessHoursStore.enabled = input.enabled;
+      businessHoursStore.timezone = input.timezone;
+      businessHoursStore.hours = input.hours.map((h) => ({ ...h }));
+      return { ...businessHoursStore, hours: businessHoursStore.hours.map((h) => ({ ...h })) };
+    },
+    async autoReplies() {
+      await latency();
+      return autoReplyStore.map((r) => ({ ...r, keywords: [...r.keywords] }));
+    },
+    async createAutoReply(input: CreateAutoReplyInput) {
+      await latency();
+      const now = new Date().toISOString();
+      const rule: AutoReply = {
+        id: `ar_${Date.now()}`,
+        name: input.name ?? "",
+        trigger: input.trigger,
+        keywords: input.keywords ?? [],
+        response: input.response,
+        active: input.active ?? true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      autoReplyStore.push(rule);
+      return { ...rule };
+    },
+    async updateAutoReply(id, input: UpdateAutoReplyInput) {
+      await latency();
+      const r = autoReplyStore.find((x) => x.id === id);
+      if (!r) notFound("Auto-reply");
+      if (input.name !== undefined) r.name = input.name;
+      if (input.trigger !== undefined) r.trigger = input.trigger;
+      if (input.keywords !== undefined) r.keywords = input.keywords;
+      if (input.response !== undefined) r.response = input.response;
+      if (input.active !== undefined) r.active = input.active;
+      r.updatedAt = new Date().toISOString();
+      return { ...r };
+    },
+    async removeAutoReply(id) {
+      await latency();
+      const i = autoReplyStore.findIndex((x) => x.id === id);
+      if (i === -1) notFound("Auto-reply");
+      autoReplyStore.splice(i, 1);
+    },
+  },
   bots: {
     async list() {
       await latency();
-      return db.bots;
+      return db.bots.map((b) => ({
+        ...b,
+        trigger: {
+          ...b.trigger,
+          keywords: b.trigger.keywords ? [...b.trigger.keywords] : undefined,
+        },
+      }));
+    },
+    async create(input: CreateBotInput) {
+      await latency();
+      const bot = {
+        id: `bt_${Date.now()}`,
+        name: input.name,
+        trigger: {
+          ...input.trigger,
+          keywords: input.trigger.keywords ? [...input.trigger.keywords] : undefined,
+        },
+        active: input.active ?? true,
+        runs: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      db.bots.push(bot);
+      return { ...bot };
+    },
+    async update(id, input: UpdateBotInput) {
+      await latency();
+      const b = db.bots.find((x) => x.id === id);
+      if (!b) notFound("Bot");
+      if (input.name !== undefined) b.name = input.name;
+      if (input.trigger !== undefined) b.trigger = { ...input.trigger };
+      if (input.active !== undefined) b.active = input.active;
+      return { ...b, trigger: { ...b.trigger } };
+    },
+    async remove(id) {
+      await latency();
+      const i = db.bots.findIndex((x) => x.id === id);
+      if (i === -1) notFound("Bot");
+      db.bots.splice(i, 1);
     },
   },
   team: {
@@ -1590,7 +1946,30 @@ export const mockApi: Api = {
   integrations: {
     async saveOpenAiKey(key) {
       await latency();
-      return { masked: `sk-...${key.slice(-4)}` };
+      openaiKey = { masked: `sk-...${key.slice(-4)}` };
+      return { masked: openaiKey.masked };
+    },
+    async openaiStatus() {
+      await latency();
+      return { configured: !!openaiKey, masked: openaiKey?.masked ?? null };
+    },
+    async removeOpenAiKey() {
+      await latency();
+      openaiKey = null;
+    },
+    async testOpenAi() {
+      await latency();
+      return openaiKey ? { ok: true } : { ok: false, error: "No OpenAI key configured" };
+    },
+    async suggestReplies() {
+      await latency();
+      return {
+        suggestions: [
+          "Thanks for reaching out! How can I help you today?",
+          "Happy to help — could you share a bit more detail?",
+          "Got it, let me check and get back to you shortly.",
+        ],
+      };
     },
   },
   inboxes: {

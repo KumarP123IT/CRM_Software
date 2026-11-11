@@ -7,6 +7,7 @@ import { normalizePhone } from "../lib/phone.js";
 import { parseCsv, toCsv } from "../lib/csv.js";
 import { matchesRules, type GroupRule } from "../lib/group-rules.js";
 import { badRequest, notFound } from "../lib/errors.js";
+import { emitWorkspaceEvent } from "../lib/webhook-out.js";
 import {
   requireAuth,
   resolveWorkspace,
@@ -559,6 +560,7 @@ export async function contactRoutes(fastify: FastifyInstance) {
         targetId: contact.id,
         ip: request.ip,
       });
+      void emitWorkspaceEvent(ws, "contact.created", { contactId: contact.id });
       return reply.status(201).send(toApiContact(full));
     },
   );

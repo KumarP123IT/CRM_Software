@@ -296,12 +296,173 @@ export type UpdateLeadInput = Partial<Omit<CreateLeadInput, "contactId">> & {
   contactId?: ID | undefined;
 };
 
+export type AutomationTrigger = "first_message" | "keyword" | "outside_hours";
+
+export interface BotTrigger {
+  type: AutomationTrigger;
+  keywords?: string[] | undefined;
+  response: string;
+}
+
 export interface Bot {
   id: ID;
   name: string;
-  trigger: string;
+  trigger: BotTrigger;
   active: boolean;
   runs: number;
+  createdAt?: ISODate | undefined;
+  updatedAt?: ISODate | undefined;
+}
+
+export interface CreateBotInput {
+  name: string;
+  trigger: BotTrigger;
+  active?: boolean | undefined;
+}
+
+export type UpdateBotInput = Partial<CreateBotInput>;
+
+export interface DayHours {
+  day: number; // 0 = Sunday … 6 = Saturday
+  open: string; // "HH:MM"
+  close: string;
+}
+
+export interface BusinessHoursConfig {
+  enabled: boolean;
+  timezone: string;
+  hours: DayHours[];
+}
+
+export interface AutoReply {
+  id: ID;
+  name: string;
+  trigger: AutomationTrigger;
+  keywords: string[];
+  response: string;
+  active: boolean;
+  createdAt: ISODate;
+  updatedAt: ISODate;
+}
+
+export interface CreateAutoReplyInput {
+  name?: string | undefined;
+  trigger: AutomationTrigger;
+  keywords?: string[] | undefined;
+  response: string;
+  active?: boolean | undefined;
+}
+
+export type UpdateAutoReplyInput = Partial<CreateAutoReplyInput>;
+
+export interface Ad {
+  id: ID;
+  name: string;
+  phone: string;
+  message: string;
+  active: boolean;
+  clicks: number;
+  createdAt: ISODate;
+  updatedAt: ISODate;
+  waLink: string;
+}
+
+export interface CreateAdInput {
+  name: string;
+  phone: string;
+  message?: string | undefined;
+  active?: boolean | undefined;
+}
+
+export type UpdateAdInput = Partial<CreateAdInput>;
+
+export const WEBHOOK_EVENT_NAMES = [
+  "message.created",
+  "conversation.created",
+  "conversation.assigned",
+  "conversation.status_changed",
+  "contact.created",
+  "lead.created",
+  "broadcast.sent",
+] as const;
+
+export interface WebhookEndpoint {
+  id: ID;
+  url: string;
+  events: string;
+  active: boolean;
+  hasSecret: boolean;
+  deliveryCount: number;
+  createdAt: ISODate;
+  updatedAt: ISODate;
+}
+
+export interface WebhookEndpointWithSecret extends WebhookEndpoint {
+  secret: string;
+}
+
+export interface CreateWebhookEndpointInput {
+  url: string;
+  events: string[];
+  active?: boolean | undefined;
+}
+
+export type UpdateWebhookEndpointInput = Partial<CreateWebhookEndpointInput>;
+
+export interface WebhookDeliveryInfo {
+  id: ID;
+  event: string;
+  status: number | null;
+  attempts: number;
+  deliveredAt: ISODate | null;
+  lastError: string | null;
+  createdAt: ISODate;
+}
+
+export interface WebhooksApi {
+  list(): Promise<WebhookEndpoint[]>;
+  create(input: CreateWebhookEndpointInput): Promise<WebhookEndpointWithSecret>;
+  update(id: ID, input: UpdateWebhookEndpointInput): Promise<WebhookEndpoint>;
+  remove(id: ID): Promise<void>;
+  rotateSecret(id: ID): Promise<{ secret: string }>;
+  test(id: ID): Promise<{ deliveryId: ID }>;
+  deliveries(id: ID): Promise<WebhookDeliveryInfo[]>;
+}
+
+export type ApiKeyScope = "read" | "write";
+
+export interface ApiKey {
+  id: ID;
+  name: string;
+  prefix: string;
+  scopes: ApiKeyScope[];
+  lastUsedAt: ISODate | null;
+  revokedAt: ISODate | null;
+  createdAt: ISODate;
+}
+
+export interface ApiKeyWithSecret extends ApiKey {
+  key: string;
+}
+
+export interface CreateApiKeyInput {
+  name: string;
+  scopes?: ApiKeyScope[] | undefined;
+}
+
+export interface ApiKeysApi {
+  list(): Promise<ApiKey[]>;
+  create(input: CreateApiKeyInput): Promise<ApiKeyWithSecret>;
+  revoke(id: ID): Promise<ApiKey>;
+  remove(id: ID): Promise<void>;
+}
+
+export interface SecurityApi {
+  totpStatus(): Promise<{ enabled: boolean }>;
+  totpSetup(): Promise<{ secret: string; otpauthUrl: string }>;
+  totpEnable(code: string): Promise<{ enabled: boolean }>;
+  totpDisable(code: string): Promise<{ enabled: boolean }>;
+  changePassword(input: { currentPassword: string; newPassword: string }): Promise<{ ok: boolean }>;
 }
 
 export interface CallReminder {
@@ -418,7 +579,11 @@ export interface ApiError {
 /* ---------- Service interfaces (implemented by mock + http adapters) ---------- */
 
 export interface AuthApi {
-  login(input: { email: string; password: string }): Promise<{ user: User; token: string }>;
+  login(input: {
+    email: string;
+    password: string;
+    totpCode?: string | undefined;
+  }): Promise<{ user: User; token: string }>;
   register(input: {
     name: string;
     email: string;
@@ -634,6 +799,23 @@ export interface AnalyticsApi {
 }
 export interface BotsApi {
   list(): Promise<Bot[]>;
+  create(input: CreateBotInput): Promise<Bot>;
+  update(id: ID, input: UpdateBotInput): Promise<Bot>;
+  remove(id: ID): Promise<void>;
+}
+export interface AdsApi {
+  list(): Promise<Ad[]>;
+  create(input: CreateAdInput): Promise<Ad>;
+  update(id: ID, input: UpdateAdInput): Promise<Ad>;
+  remove(id: ID): Promise<void>;
+}
+export interface AutomationApi {
+  businessHours(): Promise<BusinessHoursConfig>;
+  updateBusinessHours(input: BusinessHoursConfig): Promise<BusinessHoursConfig>;
+  autoReplies(): Promise<AutoReply[]>;
+  createAutoReply(input: CreateAutoReplyInput): Promise<AutoReply>;
+  updateAutoReply(id: ID, input: UpdateAutoReplyInput): Promise<AutoReply>;
+  removeAutoReply(id: ID): Promise<void>;
 }
 export interface DashboardApi {
   stats(): Promise<DashboardStats>;
@@ -648,6 +830,10 @@ export interface TeamApi {
 export interface IntegrationsApi {
   /** Key is sent to the backend; only a masked form is ever returned. */
   saveOpenAiKey(key: string): Promise<{ masked: string }>;
+  openaiStatus(): Promise<{ configured: boolean; masked: string | null }>;
+  removeOpenAiKey(): Promise<void>;
+  testOpenAi(): Promise<{ ok: boolean; error?: string | undefined }>;
+  suggestReplies(conversationId: ID): Promise<{ suggestions: string[] }>;
 }
 
 /** A connected (or connectable) messaging channel — one per ChannelAccount. */
@@ -705,6 +891,11 @@ export interface Api {
   leads: LeadsApi;
   calls: CallsApi;
   analytics: AnalyticsApi;
+  automation: AutomationApi;
+  ads: AdsApi;
+  webhookEndpoints: WebhooksApi;
+  apiKeys: ApiKeysApi;
+  security: SecurityApi;
   bots: BotsApi;
   dashboard: DashboardApi;
   team: TeamApi;

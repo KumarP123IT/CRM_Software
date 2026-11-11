@@ -3,7 +3,8 @@ import { z } from "zod";
 import type { Role, User } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
-import { randomToken, sha256 } from "../lib/crypto.js";
+import { randomToken, sha256, decryptSecret } from "../lib/crypto.js";
+import { verifyTotp } from "../lib/totp.js";
 import { audit } from "../lib/audit.js";
 import { enqueueMail } from "../lib/jobs.js";
 import { config } from "../config.js";
@@ -25,6 +26,7 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1).max(200),
+  totpCode: z.string().trim().regex(/^\d{6}$/).optional(),
 });
 
 const forgotSchema = z.object({
@@ -203,6 +205,16 @@ export async function authRoutes(fastify: FastifyInstance) {
         where: { id: user.id },
         data: { failedLoginAttempts: 0, lockedUntil: null },
       });
+    }
+
+    // TOTP second factor — password alone is not enough once 2FA is enabled.
+    if (user.totpEnabled) {
+      const secret = user.totpSecretEncrypted
+        ? decryptSecret(user.totpSecretEncrypted)
+        : null;
+      if (!secret || !body.totpCode || !verifyTotp(secret, body.totpCode)) {
+        throw new AppError(401, "totp_required", "Two-factor code required");
+      }
     }
 
     const firstMembership = await prisma.membership.findFirst({

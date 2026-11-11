@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { api } from "@/api";
+import { HttpError } from "@/api/http";
 import { useAuth } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ function Login() {
   const signIn = useAuth((s) => s.signIn);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [needsTotp, setNeedsTotp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const submit = async (e: React.FormEvent) => {
@@ -33,11 +36,20 @@ function Login() {
     setLoading(true);
     setError("");
     try {
-      const r = await api.auth.login({ email, password });
+      const r = await api.auth.login({
+        email,
+        password,
+        ...(needsTotp ? { totpCode } : {}),
+      });
       signIn(r.user, r.token);
       await navigate({ to: "/dashboard" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't sign in");
+      if (err instanceof HttpError && err.code === "totp_required") {
+        setNeedsTotp(true);
+        setError("Enter the 6-digit code from your authenticator app.");
+      } else {
+        setError(err instanceof Error ? err.message : "Couldn't sign in");
+      }
     } finally {
       setLoading(false);
     }
@@ -71,12 +83,31 @@ function Login() {
             required
           />
         </div>
+        {needsTotp && (
+          <div className="space-y-1.5">
+            <Label htmlFor="totp">Two-factor code</Label>
+            <Input
+              id="totp"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={totpCode}
+              onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="000000"
+              required
+            />
+          </div>
+        )}
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
           </p>
         )}
-        <Button type="submit" loading={loading} disabled={!email || password.length < 6}>
+        <Button
+          type="submit"
+          loading={loading}
+          disabled={!email || password.length < 6 || (needsTotp && totpCode.length !== 6)}
+        >
           Sign in
         </Button>
       </form>
