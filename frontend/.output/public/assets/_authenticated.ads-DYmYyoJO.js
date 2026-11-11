@@ -1,0 +1,1 @@
+import{h as e}from"./button-CEbCQwcK.js";import{t}from"./badge-indian-rupee-8ysxbxkE.js";import{t as n}from"./ComingSoon-D0W3N7oy.js";var r=e(),i=()=>(0,r.jsx)(n,{title:`Ads`,description:`Ads that open a WhatsApp chat.`,icon:t,emptyTitle:`Nothing here yet`,emptyText:`Ads that open a WhatsApp chat.`,cta:`Get started`});export{i as component};

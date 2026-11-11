@@ -1,0 +1,1 @@
+import{h as e}from"./button-CEbCQwcK.js";import{t}from"./sparkles-CAe25n0M.js";import{t as n}from"./ComingSoon-D0W3N7oy.js";var r=e(),i=()=>(0,r.jsx)(n,{title:`AI Agents`,description:`Let AI answer customers in your voice.`,icon:t,emptyTitle:`Nothing here yet`,emptyText:`Let AI answer customers in your voice.`,cta:`Get started`});export{i as component};

@@ -1,0 +1,1 @@
+import{h as e}from"./button-CEbCQwcK.js";import{t}from"./rocket-C19IDSGL.js";import{t as n}from"./ComingSoon-D0W3N7oy.js";var r=e(),i=()=>(0,r.jsx)(n,{title:`Campaigns`,description:`Plan a series of messages over time.`,icon:t,emptyTitle:`Nothing here yet`,emptyText:`Plan a series of messages over time.`,cta:`Get started`});export{i as component};

@@ -1,0 +1,1 @@
+import{h as e}from"./button-CEbCQwcK.js";import{t}from"./phone-call-BAVemy_y.js";import{t as n}from"./ComingSoon-D0W3N7oy.js";var r=e(),i=()=>(0,r.jsx)(n,{title:`Calls`,description:`Call reminders and history.`,icon:t,emptyTitle:`Nothing here yet`,emptyText:`Call reminders and history.`,cta:`Get started`});export{i as component};

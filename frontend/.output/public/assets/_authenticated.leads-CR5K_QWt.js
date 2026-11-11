@@ -1,0 +1,1 @@
+import{h as e}from"./button-CEbCQwcK.js";import{t}from"./target-CY9tWgTw.js";import{t as n}from"./ComingSoon-D0W3N7oy.js";var r=e(),i=()=>(0,r.jsx)(n,{title:`Leads`,description:`Track deals from first hello to paid.`,icon:t,emptyTitle:`Nothing here yet`,emptyText:`Track deals from first hello to paid.`,cta:`Get started`});export{i as component};
