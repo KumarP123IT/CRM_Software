@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BarChart3 } from "lucide-react";
-import { ComingSoon } from "@/features/placeholder/ComingSoon";
+import { Analytics } from "@/features/analytics/Analytics";
 
 export const Route = createFileRoute("/_authenticated/analytics")({
   head: () => ({
@@ -14,14 +13,5 @@ export const Route = createFileRoute("/_authenticated/analytics")({
       },
     ],
   }),
-  component: () => (
-    <ComingSoon
-      title="Analytics"
-      description="How your team and messages are doing."
-      icon={BarChart3}
-      emptyTitle="Nothing here yet"
-      emptyText="How your team and messages are doing."
-      cta="Get started"
-    />
-  ),
+  component: Analytics,
 });

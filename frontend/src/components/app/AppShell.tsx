@@ -1,25 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import {
-  MessagesSquare,
-  MoreHorizontal,
-  Target,
-  Users,
-  FlaskConical,
-} from "lucide-react";
+import { MessagesSquare, MoreHorizontal, Target, Users, FlaskConical } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { CommandPalette } from "./CommandPalette";
 import { useUi } from "@/stores/ui";
 import { useAuth } from "@/stores/auth";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Kbd } from "@/components/shared";
 import {
   Select,
@@ -43,12 +32,7 @@ const SHORTCUTS: [string[], string][] = [
 
 function isTyping(e: KeyboardEvent) {
   const el = e.target as HTMLElement | null;
-  return (
-    !!el &&
-    (el.tagName === "INPUT" ||
-      el.tagName === "TEXTAREA" ||
-      el.isContentEditable)
-  );
+  return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
 }
 
 function useGlobalShortcuts() {
@@ -85,10 +69,7 @@ function ShortcutsDialog() {
         </DialogHeader>
         <ul className="divide-y">
           {SHORTCUTS.map(([keys, label]) => (
-            <li
-              key={label}
-              className="flex items-center justify-between py-2.5 text-base"
-            >
+            <li key={label} className="flex items-center justify-between py-2.5 text-base">
               <span>{label}</span>
               <span className="flex gap-1">
                 {keys.map((k) => (
@@ -110,14 +91,8 @@ function DevRoleSwitcher() {
     <div className="fixed bottom-20 right-3 z-40 flex items-center gap-2 rounded-full border bg-card py-1 pl-3 pr-1 shadow-float md:bottom-4">
       <FlaskConical className="size-3.5 text-warning" aria-hidden />
       <span className="text-xs font-medium text-muted-foreground">View as</span>
-      <Select
-        value={previewRole ?? user.role}
-        onValueChange={(v) => setPreviewRole(v as Role)}
-      >
-        <SelectTrigger
-          className="h-7 w-28 rounded-full text-xs"
-          aria-label="Preview role"
-        >
+      <Select value={previewRole ?? user.role} onValueChange={(v) => setPreviewRole(v as Role)}>
+        <SelectTrigger className="h-7 w-28 rounded-full text-xs" aria-label="Preview role">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

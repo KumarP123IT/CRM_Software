@@ -26,9 +26,7 @@ export function useKeyboardNavigation({
       // Ignore if user is typing in an input/textarea
       const target = e.target as HTMLElement;
       const isInput =
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable;
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
 
       // Allow Esc in inputs
       if (e.key === "Escape" && onClose) {

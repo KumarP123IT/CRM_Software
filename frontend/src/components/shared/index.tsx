@@ -4,11 +4,7 @@ import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
 import { usePermission, type Permission } from "@/lib/permissions";
@@ -26,16 +22,10 @@ export function PageHeader({
   return (
     <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-xl font-bold text-foreground sm:text-2xl">
-          {title}
-        </h1>
-        {description && (
-          <p className="mt-1 text-base text-muted-foreground">{description}</p>
-        )}
+        <h1 className="text-xl font-bold text-foreground sm:text-2xl">{title}</h1>
+        {description && <p className="mt-1 text-base text-muted-foreground">{description}</p>}
       </div>
-      {actions && (
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
-      )}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </header>
   );
 }
@@ -56,10 +46,7 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={cn(
-        "flex flex-col items-center justify-center px-6 py-14 text-center",
-        className,
-      )}
+      className={cn("flex flex-col items-center justify-center px-6 py-14 text-center", className)}
     >
       <div className="relative mb-5">
         <div
@@ -71,9 +58,7 @@ export function EmptyState({
         </div>
       </div>
       <h3 className="text-md font-semibold text-foreground">{title}</h3>
-      <p className="mt-1.5 max-w-sm text-base text-muted-foreground">
-        {description}
-      </p>
+      <p className="mt-1.5 max-w-sm text-base text-muted-foreground">{description}</p>
       {action && <div className="mt-5">{action}</div>}
     </div>
   );
@@ -88,10 +73,7 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <div
-      role="alert"
-      className="flex flex-col items-center gap-3 px-6 py-10 text-center"
-    >
+    <div role="alert" className="flex flex-col items-center gap-3 px-6 py-10 text-center">
       <div className="flex size-10 items-center justify-center rounded-full bg-destructive-soft text-destructive">
         <AlertCircle className="size-5" aria-hidden />
       </div>
@@ -143,11 +125,7 @@ export function PresenceAvatar({
 }) {
   const t = tone ?? name.length;
   const sz =
-    size === "sm"
-      ? "size-7 text-xs"
-      : size === "lg"
-        ? "size-11 text-base"
-        : "size-9 text-sm";
+    size === "sm" ? "size-7 text-xs" : size === "lg" ? "size-11 text-base" : "size-9 text-sm";
   return (
     <span className="relative inline-flex shrink-0">
       <span
@@ -175,13 +153,7 @@ export function PresenceAvatar({
 }
 
 /* ---------- Kbd ---------- */
-export function Kbd({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+export function Kbd({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <kbd
       className={cn(
@@ -222,22 +194,17 @@ export function StatCard({
       </Card>
     );
   }
-  const positive =
-    delta !== undefined && (goodWhenDown ? delta < 0 : delta > 0);
+  const positive = delta !== undefined && (goodWhenDown ? delta < 0 : delta > 0);
   return (
     <Card className="group p-5 transition-shadow duration-200 hover:shadow-float">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">
-          {label}
-        </span>
+        <span className="text-sm font-medium text-muted-foreground">{label}</span>
         <span className="flex size-8 items-center justify-center rounded-md bg-primary-soft text-primary">
           <Icon className="size-4" aria-hidden />
         </span>
       </div>
       <div className="mt-3 flex items-baseline gap-2">
-        <span className="font-display text-2xl font-bold tabular text-foreground">
-          {value}
-        </span>
+        <span className="font-display text-2xl font-bold tabular text-foreground">{value}</span>
         {delta !== undefined && (
           <span
             className={cn(
@@ -259,16 +226,8 @@ export function StatCard({
             >
               <defs>
                 <linearGradient id={`g${id}`} x1="0" x2="0" y1="0" y2="1">
-                  <stop
-                    offset="0%"
-                    stopColor="var(--color-primary)"
-                    stopOpacity={0.25}
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="var(--color-primary)"
-                    stopOpacity={0}
-                  />
+                  <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <Area
@@ -322,13 +281,7 @@ export function FilterBar({ children }: { children: React.ReactNode }) {
 }
 
 /* ---------- ProgressRing ---------- */
-export function ProgressRing({
-  value,
-  size = 56,
-}: {
-  value: number;
-  size?: number;
-}) {
+export function ProgressRing({ value, size = 56 }: { value: number; size?: number }) {
   const stroke = 5;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;

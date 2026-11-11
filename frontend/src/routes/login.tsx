@@ -24,8 +24,8 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const navigate = useNavigate();
   const signIn = useAuth((s) => s.signIn);
-  const [email, setEmail] = useState("priya@chaipointcafe.in");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const submit = async (e: React.FormEvent) => {
@@ -54,8 +54,10 @@ function Login() {
           <Input
             id="email"
             type="email"
+            autoComplete="username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
         </div>
         <div className="space-y-1.5">
@@ -63,8 +65,10 @@ function Login() {
           <Input
             id="pw"
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
         </div>
         {error && (
@@ -72,18 +76,12 @@ function Login() {
             {error}
           </p>
         )}
-        <Button
-          type="submit"
-          loading={loading}
-          disabled={!email || password.length < 6}
-        >
+        <Button type="submit" loading={loading} disabled={!email || password.length < 6}>
           Sign in
         </Button>
       </form>
       <div className="bg-panel hidden flex-col justify-center gap-4 p-12 lg:flex">
-        <p className="font-display text-2xl font-bold">
-          One inbox for your whole team.
-        </p>
+        <p className="font-display text-2xl font-bold">One inbox for your whole team.</p>
         <p>Reply faster on WhatsApp.</p>
         <p>Never lose a lead.</p>
         <p>Message everyone in one tap.</p>

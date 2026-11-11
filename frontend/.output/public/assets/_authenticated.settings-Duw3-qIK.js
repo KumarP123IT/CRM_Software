@@ -1,1 +1,0 @@
-import{h as e}from"./button-CEbCQwcK.js";import{t}from"./settings-C53sATO2.js";import{t as n}from"./ComingSoon-D0W3N7oy.js";var r=e(),i=()=>(0,r.jsx)(n,{title:`Settings`,description:`Workspace, team and billing.`,icon:t,emptyTitle:`Nothing here yet`,emptyText:`Workspace, team and billing.`,cta:`Get started`});export{i as component};

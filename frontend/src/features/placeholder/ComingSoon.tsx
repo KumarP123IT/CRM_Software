@@ -26,9 +26,7 @@ export function ComingSoon({
   perm,
 }: ComingSoonProps) {
   const button = (
-    <Button onClick={() => toast("This part is coming in the next update")}>
-      {cta}
-    </Button>
+    <Button onClick={() => toast("This part is coming in the next update")}>{cta}</Button>
   );
   return (
     <div className="space-y-6">

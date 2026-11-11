@@ -1,0 +1,232 @@
+import { Queue, Worker, type Job } from "bullmq";
+import { config, isTest } from "../config.js";
+import { redis } from "./redis.js";
+import { prisma } from "./prisma.js";
+import { getAdapter, type DeliveryStatusEvent, type InboundMessageEvent } from "../channels/index.js";
+import { applyDeliveryStatuses, ingestInbound } from "./inbox.js";
+import {
+  prepareBroadcastDispatch,
+  sendRecipientChunk,
+} from "./broadcasts.js";
+
+export interface MailJobData {
+  to: string;
+  subject: string;
+  text: string;
+}
+
+export interface SentMail extends MailJobData {
+  at: string;
+}
+
+/** In-memory sink so tests (and local dev) can assert on "sent" email without SMTP. */
+export const sentEmails: SentMail[] = [];
+export function clearSentEmails() {
+  sentEmails.length = 0;
+}
+
+export const MAIL_QUEUE = "mail";
+
+let mailQueue: Queue<MailJobData> | null = null;
+let mailWorker: Worker<MailJobData> | null = null;
+
+export function getMailQueue(): Queue<MailJobData> {
+  if (!mailQueue) {
+    mailQueue = new Queue<MailJobData>(MAIL_QUEUE, { connection: redis() });
+  }
+  return mailQueue;
+}
+
+export async function handleMailJob(data: MailJobData): Promise<void> {
+  // No SMTP provider wired yet — record and log. Swap for a real provider in Phase 7.
+  sentEmails.push({ ...data, at: new Date().toISOString() });
+  console.log(`[mail] to=${data.to} subject="${data.subject}"`);
+}
+
+async function processMail(job: Job<MailJobData>): Promise<void> {
+  await handleMailJob(job.data);
+}
+
+/** Enqueue a mail job. In tests jobs run inline so assertions are deterministic. */
+export async function enqueueMail(data: MailJobData): Promise<void> {
+  if (isTest || config.NODE_ENV === "development") {
+    await handleMailJob(data);
+    return;
+  }
+  await getMailQueue().add("send", data, { attempts: 3, backoff: { type: "exponential", delay: 5000 } });
+}
+
+export interface ChannelInboundJobData {
+  accountId: string;
+  events: InboundMessageEvent[];
+  statuses: DeliveryStatusEvent[];
+}
+
+export const CHANNEL_INBOUND_QUEUE = "channel-inbound";
+
+/* ---------- broadcasts ---------- */
+
+export type BroadcastJobData =
+  | { kind: "dispatch"; broadcastId: string }
+  | { kind: "send"; broadcastId: string; recipientIds: string[] };
+
+export const BROADCAST_QUEUE = "broadcasts";
+const SEND_CHUNK = 25;
+
+let broadcastQueue: Queue<BroadcastJobData> | null = null;
+let broadcastWorker: Worker<BroadcastJobData> | null = null;
+
+function getBroadcastQueue(): Queue<BroadcastJobData> {
+  if (!broadcastQueue) {
+    broadcastQueue = new Queue<BroadcastJobData>(BROADCAST_QUEUE, { connection: redis() });
+  }
+  return broadcastQueue;
+}
+
+async function handleBroadcastDispatchJob(broadcastId: string): Promise<void> {
+  const ids = await prepareBroadcastDispatch(broadcastId);
+  if (!ids?.length) return;
+  for (let i = 0; i < ids.length; i += SEND_CHUNK) {
+    const chunk = ids.slice(i, i + SEND_CHUNK);
+    if (isTest) {
+      await sendRecipientChunk(broadcastId, chunk);
+    } else {
+      await getBroadcastQueue().add(
+        "send",
+        { kind: "send", broadcastId, recipientIds: chunk },
+        { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
+      );
+    }
+  }
+}
+
+async function processBroadcastJob(job: Job<BroadcastJobData>): Promise<void> {
+  if (job.data.kind === "dispatch") {
+    await handleBroadcastDispatchJob(job.data.broadcastId);
+  } else {
+    await sendRecipientChunk(job.data.broadcastId, job.data.recipientIds);
+  }
+}
+
+/**
+ * Enqueue (or inline-run) a broadcast dispatch. Scheduled broadcasts get a
+ * delayed dispatch job; in tests a future schedule simply stays scheduled
+ * (no worker runs), while immediate sends execute inline.
+ */
+export async function enqueueBroadcastDispatch(
+  broadcastId: string,
+  scheduledAt?: Date | null,
+): Promise<void> {
+  const delay = scheduledAt ? Math.max(0, scheduledAt.getTime() - Date.now()) : 0;
+  if (isTest) {
+    if (delay > 0) return; // stays "scheduled" — deterministic in tests
+    await handleBroadcastDispatchJob(broadcastId);
+    return;
+  }
+  await getBroadcastQueue().add(
+    "dispatch",
+    { kind: "dispatch", broadcastId },
+    {
+      ...(delay > 0 ? { delay } : {}),
+      jobId: `broadcast-dispatch:${broadcastId}`,
+      attempts: 3,
+      backoff: { type: "exponential", delay: 5000 },
+    },
+  );
+}
+
+/** Best-effort removal of a pending scheduled dispatch (cancel path). */
+export async function removeBroadcastDispatch(broadcastId: string): Promise<void> {
+  if (isTest) return;
+  try {
+    await getBroadcastQueue().remove(`broadcast-dispatch:${broadcastId}`);
+  } catch {
+    // job already gone or redis unreachable — broadcast row is source of truth
+  }
+}
+
+/** Start the broadcast worker. Called once from app.ts; safe to call repeatedly. */
+export function startBroadcastWorker(): void {
+  if (broadcastWorker || isTest) return;
+  broadcastWorker = new Worker<BroadcastJobData>(BROADCAST_QUEUE, processBroadcastJob, {
+    connection: redis(),
+  });
+  broadcastWorker.on("failed", (job, err) => {
+    console.error(`[broadcasts] job ${job?.id ?? "?"} failed:`, err.message);
+  });
+}
+
+let channelInboundQueue: Queue<ChannelInboundJobData> | null = null;
+let channelInboundWorker: Worker<ChannelInboundJobData> | null = null;
+
+function getChannelInboundQueue(): Queue<ChannelInboundJobData> {
+  if (!channelInboundQueue) {
+    channelInboundQueue = new Queue<ChannelInboundJobData>(CHANNEL_INBOUND_QUEUE, {
+      connection: redis(),
+    });
+  }
+  return channelInboundQueue;
+}
+
+async function handleChannelInboundJob(data: ChannelInboundJobData): Promise<void> {
+  const account = await prisma.channelAccount.findUnique({ where: { id: data.accountId } });
+  if (!account || account.status !== "connected") return;
+  // Touch adapter so unsupported types fail loudly here rather than silently.
+  getAdapter(account.type);
+  await ingestInbound(account, data.events);
+  if (data.statuses.length) await applyDeliveryStatuses(account, data.statuses);
+}
+
+async function processChannelInbound(job: Job<ChannelInboundJobData>): Promise<void> {
+  await handleChannelInboundJob(job.data);
+}
+
+/** Enqueue normalized inbound channel events. Inline in tests/dev. */
+export async function enqueueChannelInbound(data: ChannelInboundJobData): Promise<void> {
+  if (isTest || config.NODE_ENV === "development") {
+    await handleChannelInboundJob(data);
+    return;
+  }
+  await getChannelInboundQueue().add("inbound", data, {
+    attempts: 3,
+    backoff: { type: "exponential", delay: 5000 },
+  });
+}
+
+/** Start the channel inbound worker. Called once from app.ts; safe to call repeatedly. */
+export function startChannelInboundWorker(): void {
+  if (channelInboundWorker || isTest) return;
+  channelInboundWorker = new Worker<ChannelInboundJobData>(
+    CHANNEL_INBOUND_QUEUE,
+    processChannelInbound,
+    { connection: redis() },
+  );
+  channelInboundWorker.on("failed", (job, err) => {
+    console.error(`[channel-inbound] job ${job?.id ?? "?"} failed:`, err.message);
+  });
+}
+
+/** Start the mail worker. Called once from app.ts; safe to call repeatedly. */
+export function startMailWorker(): void {
+  if (mailWorker || isTest) return;
+  mailWorker = new Worker<MailJobData>(MAIL_QUEUE, processMail, { connection: redis() });
+  mailWorker.on("failed", (job, err) => {
+    console.error(`[mail] job ${job?.id ?? "?"} failed:`, err.message);
+  });
+}
+
+export async function closeQueues(): Promise<void> {
+  await mailWorker?.close();
+  await mailQueue?.close();
+  await channelInboundWorker?.close();
+  await channelInboundQueue?.close();
+  await broadcastWorker?.close();
+  await broadcastQueue?.close();
+  mailWorker = null;
+  mailQueue = null;
+  channelInboundWorker = null;
+  channelInboundQueue = null;
+  broadcastWorker = null;
+  broadcastQueue = null;
+  await redis().quit().catch(() => undefined);
+}

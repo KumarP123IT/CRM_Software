@@ -120,12 +120,7 @@ function Register() {
         <h1 className="text-2xl font-bold">Create your workspace</h1>
         <div className="space-y-1.5">
           <Label htmlFor="name">Your name</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
+          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">Work email</Label>
@@ -151,12 +146,7 @@ function Register() {
               <Progress value={(passwordStrength / 5) * 100} className="h-1" />
               <p className="text-xs text-muted-foreground">
                 Password strength:{" "}
-                <span
-                  className={cn(
-                    strengthColors[passwordStrength - 1],
-                    "font-medium",
-                  )}
-                >
+                <span className={cn(strengthColors[passwordStrength - 1], "font-medium")}>
                   {strengthLabels[passwordStrength - 1]}
                 </span>
               </p>
@@ -168,16 +158,14 @@ function Register() {
           <Input
             id="business"
             value={business}
-            onChange={handleBusinessChange}
+            onChange={(e) => handleBusinessChange(e.target.value)}
             required
           />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="slug">Workspace URL</Label>
           <div className="flex items-center">
-            <span className="mr-2 text-sm text-muted-foreground">
-              konvo.app/
-            </span>
+            <span className="mr-2 text-sm text-muted-foreground">konvo.app/</span>
             <Input
               id="slug"
               value={slug}
@@ -193,24 +181,18 @@ function Register() {
                 <div className="size-4 border-2 border-t-primary rounded-full animate-spin" />
               </div>
             )}
-            {slugAvailable === true && (
-              <Check className="ml-2 size-4 text-success" />
-            )}
-            {slugAvailable === false && (
-              <X className="ml-2 size-4 text-destructive" />
-            )}
+            {slugAvailable === true && <Check className="ml-2 size-4 text-success" />}
+            {slugAvailable === false && <X className="ml-2 size-4 text-destructive" />}
           </div>
           {slugAvailable === false && (
-            <p className="text-xs text-destructive mt-1">
-              This URL is already taken
-            </p>
+            <p className="text-xs text-destructive mt-1">This URL is already taken</p>
           )}
         </div>
         <div className="flex items-center gap-2">
           <Checkbox
             id="terms"
             checked={terms}
-            onCheckedChange={(v) => setTerms(v as boolean)}
+            onCheckedChange={(v) => setTerms(v === true)}
             required
           />
           <Label htmlFor="terms" className="text-sm">
@@ -225,10 +207,7 @@ function Register() {
           </Label>
         </div>
         {error && (
-          <p
-            role="alert"
-            className="text-sm text-destructive flex items-center gap-2"
-          >
+          <p role="alert" className="text-sm text-destructive flex items-center gap-2">
             <AlertCircle className="size-4" />
             {error}
           </p>
@@ -255,9 +234,7 @@ function Register() {
         </div>
       </form>
       <div className="bg-panel hidden flex-col justify-center gap-4 p-12 lg:flex">
-        <p className="font-display text-2xl font-bold">
-          One inbox for your whole team.
-        </p>
+        <p className="font-display text-2xl font-bold">One inbox for your whole team.</p>
         <p>Reply faster on WhatsApp.</p>
         <p>Never lose a lead.</p>
         <p>Message everyone in one tap.</p>

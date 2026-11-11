@@ -1,1 +1,0 @@
-import{h as e}from"./button-CEbCQwcK.js";import{t}from"./message-circle-reply-CZYkN8_p.js";import{t as n}from"./ComingSoon-D0W3N7oy.js";var r=e(),i=()=>(0,r.jsx)(n,{title:`Comment Automation`,description:`Reply to Instagram comments on WhatsApp.`,icon:t,emptyTitle:`Nothing here yet`,emptyText:`Reply to Instagram comments on WhatsApp.`,cta:`Get started`});export{i as component};

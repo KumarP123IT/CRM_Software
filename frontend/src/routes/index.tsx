@@ -13,14 +13,12 @@ export const Route = createFileRoute("/")({
       { title: "Konvo — WhatsApp CRM" },
       {
         name: "description",
-        content:
-          "Your team's shared WhatsApp inbox, contacts, broadcasts and leads.",
+        content: "Your team's shared WhatsApp inbox, contacts, broadcasts and leads.",
       },
       { property: "og:title", content: "Konvo — WhatsApp CRM" },
       {
         property: "og:description",
-        content:
-          "Your team's shared WhatsApp inbox, contacts, broadcasts and leads.",
+        content: "Your team's shared WhatsApp inbox, contacts, broadcasts and leads.",
       },
     ],
   }),

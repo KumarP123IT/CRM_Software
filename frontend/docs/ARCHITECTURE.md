@@ -8,7 +8,7 @@ Konvo is a multi-tenant conversational CRM for WhatsApp businesses, built with R
 
 - **Framework**: React 18 + Vite
 - **Routing**: TanStack Router (file-based routing)
-- **State Management**: 
+- **State Management**:
   - React Query (@tanstack/react-query) for server state
   - Zustand for UI state (sidebar, theme, dialogs)
 - **UI Components**: shadcn/ui (Radix UI primitives)
@@ -122,6 +122,7 @@ All colors are defined as CSS variables in `src/styles.css` using OKLCH for bett
 ### Components
 
 Key shared components in `src/components/shared/`:
+
 - `PageHeader` - Page title with optional description and actions
 - `EmptyState` - Consistent empty state with icon, title, description, and CTA
 - `ErrorState` - Error display with retry button
@@ -155,16 +156,19 @@ export const api: Api = useMocks ? mockApi : httpApi;
 ```
 
 **To use real backend:**
+
 1. Copy `.env.example` to `.env`
 2. Set `VITE_USE_MOCKS=false`
 3. Set `VITE_API_BASE_URL` to your backend URL
 
 **To use mock data (default):**
+
 - Leave `VITE_USE_MOCKS=true` or unset (defaults to true)
 
 ### HTTP Client Features
 
 The HTTP client (`src/api/http.ts`) provides:
+
 - **Auth header injection**: Automatically adds Bearer token from auth store
 - **Error normalization**: Converts all errors to consistent `HttpError` format
 - **Automatic retry**: Retries GET requests on 5xx errors (exponential backoff)
@@ -196,6 +200,7 @@ export interface ConversationsApi {
 ### Mock Data
 
 Mock data in `src/api/mock/data.ts` includes:
+
 - **40 contacts** with Indian names, +91 phone numbers, realistic cities, tags, and custom fields
 - **12 conversations** with Hinglish messages, different statuses, channels (WhatsApp, Instagram, Web)
 - **5 templates** with various categories and statuses
@@ -211,6 +216,7 @@ All data uses INR currency and Indian context.
 ### React Query (Server State)
 
 Used for all API calls. Queries are cached and automatically refetched:
+
 ```typescript
 const q = useQuery({
   queryKey: ["conversations", "assigned", userId],
@@ -219,6 +225,7 @@ const q = useQuery({
 ```
 
 Mutations with optimistic updates:
+
 ```typescript
 const resolve = useMutation({
   mutationFn: (id: string) => api.conversations.setStatus(id, "resolved"),
@@ -234,11 +241,13 @@ const resolve = useMutation({
 Used for ephemeral UI state:
 
 **Auth Store** (`src/stores/auth.ts`):
+
 - User and token (persisted)
 - Workspace ID
 - Dev-only role preview
 
 **UI Store** (`src/stores/ui.ts`):
+
 - Sidebar collapsed state (persisted)
 - Theme preference (persisted)
 - Command palette open state
@@ -275,6 +284,7 @@ TanStack Router uses file-based routing. Route structure:
 ### Auth Guard
 
 The `_authenticated` layout uses `useAuthGuard()` to check authentication and redirect to `/login` if not signed in:
+
 ```typescript
 export function useAuthGuard() {
   const navigate = useNavigate();
@@ -293,7 +303,8 @@ Permissions are role-based and defined in `src/lib/permissions.ts`:
 
 **Roles**: Owner, Admin, Manager, Agent, Read-only
 
-**Permissions**: 
+**Permissions**:
+
 - `conversation.reply`, `conversation.assign`
 - `contact.create`, `contact.delete`
 - `broadcast.create`, `template.create`
@@ -302,6 +313,7 @@ Permissions are role-based and defined in `src/lib/permissions.ts`:
 - `settings.manage`, `billing.manage`, `team.invite`
 
 **Usage**:
+
 ```typescript
 const { allowed, reason } = usePermission("broadcast.create");
 
@@ -321,6 +333,7 @@ const { allowed, reason } = usePermission("broadcast.create");
 ## Internationalization
 
 Using react-i18next. Translations in `src/lib/i18n.ts`:
+
 ```typescript
 const en = {
   nav: {
@@ -336,6 +349,7 @@ const en = {
 ```
 
 Usage:
+
 ```typescript
 const { t } = useTranslation();
 <h1>{t("dashboard.greeting_morning", { name: "Priya" })}</h1>
@@ -346,6 +360,7 @@ const { t } = useTranslation();
 ### Feature Structure
 
 Each feature follows this pattern:
+
 ```
 src/features/{feature}/
 ├── components/     # Feature-specific components
@@ -357,6 +372,7 @@ src/features/{feature}/
 ### Page Components
 
 Pages should be thin containers that orchestrate components:
+
 ```typescript
 export function Dashboard() {
   return (
@@ -377,11 +393,13 @@ export function Dashboard() {
 ### Loading & Error States
 
 Every list should have:
+
 - Skeleton loading state
 - Empty state with icon, title, description, and CTA
 - Error state with retry button
 
 Use shared components:
+
 ```typescript
 {q.isPending ? (
   <ListSkeleton />
@@ -399,6 +417,7 @@ Use shared components:
 Reusable hooks in `src/hooks/`:
 
 **useKeyboardNavigation**: Provides keyboard shortcuts for lists and pages
+
 ```typescript
 useKeyboardNavigation({
   onMoveUp: () => handlePrevious(),
@@ -410,15 +429,18 @@ useKeyboardNavigation({
   enabled: true,
 });
 ```
+
 Shortcuts: j/k or arrows to move, Enter to open, Esc to close, / for search, ? for help.
 
 **useUnsavedChangesGuard**: Warns before navigating away from dirty forms
+
 ```typescript
 useUnsavedChangesGuard({
   hasUnsavedChanges: formDirty,
   message: "You have unsaved changes. Are you sure you want to leave?",
 });
 ```
+
 Prevents route changes and tab closes when there are unsaved changes.
 
 ## Development Workflow

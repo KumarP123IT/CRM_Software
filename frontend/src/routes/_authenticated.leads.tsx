@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Target } from "lucide-react";
-import { ComingSoon } from "@/features/placeholder/ComingSoon";
+import { Leads } from "@/features/leads/Leads";
 
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({
@@ -14,14 +13,5 @@ export const Route = createFileRoute("/_authenticated/leads")({
       },
     ],
   }),
-  component: () => (
-    <ComingSoon
-      title="Leads"
-      description="Track deals from first hello to paid."
-      icon={Target}
-      emptyTitle="Nothing here yet"
-      emptyText="Track deals from first hello to paid."
-      cta="Get started"
-    />
-  ),
+  component: Leads,
 });

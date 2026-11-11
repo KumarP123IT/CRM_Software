@@ -1,11 +1,4 @@
-import {
-  subDays,
-  subHours,
-  subMinutes,
-  addHours,
-  addMinutes,
-  startOfDay,
-} from "date-fns";
+import { subDays, subHours, subMinutes, addHours, addMinutes, startOfDay } from "date-fns";
 import type {
   ActivityItem,
   Bot,
@@ -14,6 +7,7 @@ import type {
   Contact,
   Conversation,
   Lead,
+  Team,
   Template,
   User,
   Workspace,
@@ -165,10 +159,7 @@ export const contacts: Contact[] = firstNames.map((fn, i) => {
     id: `c${i + 1}`,
     name: `${fn} ${ln}`,
     phone: `+91 9${String(8 + (i % 2))}${String(100 + i * 7).slice(-3)} ${phoneTail}`,
-    email:
-      i % 3 === 0
-        ? `${fn.toLowerCase()}.${ln.toLowerCase()}@gmail.com`
-        : undefined,
+    email: i % 3 === 0 ? `${fn.toLowerCase()}.${ln.toLowerCase()}@gmail.com` : undefined,
     city: cities[i % cities.length]!,
     tags: [
       tagPool[i % tagPool.length]!,
@@ -198,51 +189,16 @@ const convoSeeds: Array<
     4,
   ],
   [1, "Is the masala chai premix available in 1kg pack?", "open", "u3", 1, 12],
-  [
-    2,
-    "Thank you! Delivery mil gayi, sab kuch perfect tha 🙏",
-    "resolved",
-    "u2",
-    0,
-    40,
-  ],
+  [2, "Thank you! Delivery mil gayi, sab kuch perfect tha 🙏", "resolved", "u2", 0, 40],
   [3, "Can you share the catering menu for 120 people?", "open", "u1", 3, 22],
   [4, "Payment ho gaya UPI pe, please confirm.", "pending", "u4", 1, 55],
   [5, "Do you deliver to Whitefield on Sundays?", "open", undefined, 1, 70],
   [6, "Order #4821 abhi tak nahi aaya, 45 min ho gaye.", "open", "u1", 2, 95],
-  [
-    7,
-    "Diwali gift hampers ka price list bhej do please.",
-    "pending",
-    "u2",
-    0,
-    130,
-  ],
+  [7, "Diwali gift hampers ka price list bhej do please.", "pending", "u2", 0, 130],
   [8, "Loved the new cardamom cookies. Bulk discount?", "open", "u3", 1, 190],
-  [
-    9,
-    "Please cancel my subscription from next month.",
-    "pending",
-    "u1",
-    0,
-    260,
-  ],
-  [
-    10,
-    "Can I change the delivery address to Koramangala?",
-    "resolved",
-    "u4",
-    0,
-    400,
-  ],
-  [
-    11,
-    "Hi, saw your Instagram ad — what's the combo offer?",
-    "open",
-    undefined,
-    1,
-    600,
-  ],
+  [9, "Please cancel my subscription from next month.", "pending", "u1", 0, 260],
+  [10, "Can I change the delivery address to Koramangala?", "resolved", "u4", 0, 400],
+  [11, "Hi, saw your Instagram ad — what's the combo offer?", "open", undefined, 1, 600],
 ];
 
 const channels: Conversation["channel"][] = [
@@ -270,13 +226,11 @@ export const conversations: Conversation[] = convoSeeds.map(
       status === "open" && i % 3 === 0
         ? iso(i === 0 ? addMinutes(now, 8) : subMinutes(now, 6))
         : undefined,
-    windowClosesAt: iso(
-      i === 11 ? subHours(now, 2) : addHours(now, 18 - (i % 16)),
-    ),
+    windowClosesAt: iso(i === 11 ? subHours(now, 2) : addHours(now, 18 - (i % 16))),
   }),
 );
 
-export const teams = [
+export const teams: Team[] = [
   { id: "tm1", name: "Front of house" },
   { id: "tm2", name: "Catering" },
   { id: "tm3", name: "Wholesale" },

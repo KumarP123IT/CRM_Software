@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dist-ssr/
+.output/
+.wrangler/
+.tanstack/
+.nitro/
+coverage/
+*.local
+.env
+.env.*
+!.env.example
+*.log
+dump.rdb

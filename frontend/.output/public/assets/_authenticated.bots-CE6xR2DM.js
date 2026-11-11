@@ -1,1 +1,0 @@
-import{h as e}from"./button-CEbCQwcK.js";import{t}from"./workflow-hUkIR3fR.js";import{t as n}from"./ComingSoon-D0W3N7oy.js";var r=e(),i=()=>(0,r.jsx)(n,{title:`Bots`,description:`Automatic replies for common questions.`,icon:t,emptyTitle:`Nothing here yet`,emptyText:`Automatic replies for common questions.`,cta:`Get started`});export{i as component};

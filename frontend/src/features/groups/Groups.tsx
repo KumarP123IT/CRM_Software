@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -8,22 +8,14 @@ import {
   Search,
   Filter,
   X,
-  Check,
   ChevronDown,
   Zap,
   Folder,
   Trash2,
   Edit,
-  Play,
-  Pause,
 } from "lucide-react";
-import { api } from "@/api";
-import {
-  PageHeader,
-  EmptyState,
-  ErrorState,
-  ListSkeleton,
-} from "@/components/shared";
+import { api, type ContactGroup, type GroupRule } from "@/api";
+import { PageHeader, EmptyState, ErrorState, ListSkeleton } from "@/components/shared";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,20 +58,13 @@ import { cn } from "@/lib/utils";
 
 type GroupType = "static" | "dynamic";
 
-interface Group {
-  id: string;
-  name: string;
-  type: GroupType;
-  memberCount: number;
-  rules?: Rule[];
-  active?: boolean;
-  createdAt: string;
-}
+/** View model: API group + UI-friendly `type` alias for `kind`. */
+type Group = Omit<ContactGroup, "kind"> & { type: GroupType };
 
 interface Rule {
   id: string;
   field: string;
-  operator: string;
+  operator: GroupRule["operator"];
   value: string;
   logic: "AND" | "OR";
 }
@@ -103,93 +88,37 @@ const OPERATORS = [
   { value: "is_not_empty", label: "Is not empty" },
 ];
 
-// Mock groups data
-const MOCK_GROUPS: Group[] = [
-  {
-    id: "g1",
-    name: "VIP Customers",
-    type: "dynamic",
-    memberCount: 12,
-    rules: [
-      {
-        id: "r1",
-        field: "lifetimeValue",
-        operator: "greater_than",
-        value: "10000",
-        logic: "AND",
-      },
-      {
-        id: "r2",
-        field: "tags",
-        operator: "contains",
-        value: "VIP",
-        logic: "AND",
-      },
-    ],
-    active: true,
-    createdAt: "2026-10-01T00:00:00Z",
-  },
-  {
-    id: "g2",
-    name: "Mumbai Region",
-    type: "dynamic",
-    memberCount: 18,
-    rules: [
-      {
-        id: "r3",
-        field: "city",
-        operator: "equals",
-        value: "Mumbai",
-        logic: "AND",
-      },
-    ],
-    active: true,
-    createdAt: "2026-10-05T00:00:00Z",
-  },
-  {
-    id: "g3",
-    name: "Diwali Campaign List",
-    type: "static",
-    memberCount: 45,
-    createdAt: "2026-10-15T00:00:00Z",
-  },
-  {
-    id: "g4",
-    name: "Inactive for 30 days",
-    type: "dynamic",
-    memberCount: 8,
-    rules: [
-      {
-        id: "r4",
-        field: "lastSeen",
-        operator: "less_than",
-        value: "30",
-        logic: "AND",
-      },
-    ],
-    active: false,
-    createdAt: "2026-10-20T00:00:00Z",
-  },
-];
-
 export function Groups() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"static" | "dynamic">("static");
   const [createOpen, setCreateOpen] = useState(false);
   const [createType, setCreateType] = useState<GroupType>("static");
+  const [editing, setEditing] = useState<Group | null>(null);
+  const [membersGroup, setMembersGroup] = useState<Group | null>(null);
+  const qc = useQueryClient();
 
   const q = useQuery({
     queryKey: ["groups"],
-    queryFn: async () => MOCK_GROUPS,
+    queryFn: () => api.groups.list(),
   });
 
-  const filteredGroups =
-    q.data?.filter((g) => {
-      const matchesTab = g.type === activeTab;
-      const matchesSearch = g.name.toLowerCase().includes(search.toLowerCase());
-      return matchesTab && matchesSearch;
-    }) ?? [];
+  const groups: Group[] = (q.data ?? []).map((g) => ({ ...g, type: g.kind }));
+
+  const deleteGroup = useMutation({
+    mutationFn: (id: string) => api.groups.remove(id),
+    onSuccess: () => {
+      toast.success("Group deleted");
+      qc.invalidateQueries({ queryKey: ["groups"] });
+    },
+    onError: () => toast.error("Couldn't delete group"),
+  });
+
+  const filteredGroups = groups.filter((g) => {
+    const matchesTab = g.type === activeTab;
+    const matchesSearch = g.name.toLowerCase().includes(search.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
   return (
     <div className="space-y-6">
@@ -240,7 +169,7 @@ export function Groups() {
               <Folder className="size-4 mr-2" />
               Static
               <Badge variant="secondary" className="ml-2">
-                {MOCK_GROUPS.filter((g) => g.type === "static").length}
+                {groups.filter((g) => g.type === "static").length}
               </Badge>
             </Button>
             <Button
@@ -250,7 +179,7 @@ export function Groups() {
               <Zap className="size-4 mr-2" />
               Dynamic
               <Badge variant="secondary" className="ml-2">
-                {MOCK_GROUPS.filter((g) => g.type === "dynamic").length}
+                {groups.filter((g) => g.type === "dynamic").length}
               </Badge>
             </Button>
           </div>
@@ -295,7 +224,6 @@ export function Groups() {
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Members</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
@@ -305,11 +233,7 @@ export function Groups() {
                   <TableRow key={group.id}>
                     <TableCell className="font-medium">{group.name}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          group.type === "dynamic" ? "default" : "secondary"
-                        }
-                      >
+                      <Badge variant={group.type === "dynamic" ? "default" : "secondary"}>
                         {group.type === "dynamic" ? (
                           <>
                             <Zap className="mr-1 size-3" />
@@ -323,26 +247,7 @@ export function Groups() {
                         )}
                       </Badge>
                     </TableCell>
-                    <TableCell className="tabular">
-                      {group.memberCount}
-                    </TableCell>
-                    <TableCell>
-                      {group.type === "dynamic" && (
-                        <Badge variant={group.active ? "default" : "outline"}>
-                          {group.active ? (
-                            <>
-                              <Check className="mr-1 size-3" />
-                              Active
-                            </>
-                          ) : (
-                            <>
-                              <Pause className="mr-1 size-3" />
-                              Paused
-                            </>
-                          )}
-                        </Badge>
-                      )}
-                    </TableCell>
+                    <TableCell className="tabular">{group.memberCount}</TableCell>
                     <TableCell className="text-muted-foreground">
                       {new Date(group.createdAt).toLocaleDateString()}
                     </TableCell>
@@ -354,34 +259,25 @@ export function Groups() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setMembersGroup(group)}>
                             <Users className="mr-2 size-4" />
                             View members
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditing(group);
+                              setCreateType(group.type);
+                              setCreateOpen(true);
+                            }}
+                          >
                             <Edit className="mr-2 size-4" />
                             Edit
                           </DropdownMenuItem>
-                          {group.type === "dynamic" && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem>
-                                {group.active ? (
-                                  <>
-                                    <Pause className="mr-2 size-4" />
-                                    Pause
-                                  </>
-                                ) : (
-                                  <>
-                                    <Play className="mr-2 size-4" />
-                                    Activate
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                            </>
-                          )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => deleteGroup.mutate(group.id)}
+                          >
                             <Trash2 className="mr-2 size-4" />
                             Delete
                           </DropdownMenuItem>
@@ -399,10 +295,71 @@ export function Groups() {
       {/* Create/Edit Dialog */}
       <CreateGroupDialog
         open={createOpen}
-        onOpenChange={setCreateOpen}
+        onOpenChange={(o) => {
+          setCreateOpen(o);
+          if (!o) setEditing(null);
+        }}
         type={createType}
+        group={editing}
       />
+
+      {/* Members Dialog */}
+      <MembersDialog group={membersGroup} onOpenChange={(o) => !o && setMembersGroup(null)} />
     </div>
+  );
+}
+
+function MembersDialog({
+  group,
+  onOpenChange,
+}: {
+  group: Group | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const detail = useQuery({
+    queryKey: ["group", group?.id],
+    queryFn: () => api.groups.get(group!.id),
+    enabled: !!group,
+  });
+
+  return (
+    <Dialog open={!!group} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{group?.name}</DialogTitle>
+          <DialogDescription>{detail.data?.memberCount ?? 0} members</DialogDescription>
+        </DialogHeader>
+        {detail.isPending ? (
+          <ListSkeleton rows={5} />
+        ) : detail.isError ? (
+          <ErrorState onRetry={() => detail.refetch()} />
+        ) : (
+          <div className="space-y-2">
+            {(detail.data?.members ?? []).map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+              >
+                <div>
+                  <p className="font-medium">{m.name || m.phone}</p>
+                  <p className="text-muted-foreground">{m.phone}</p>
+                </div>
+                <div className="flex gap-1">
+                  {m.tags.slice(0, 2).map((t) => (
+                    <Badge key={t} variant="secondary" className="text-xs">
+                      {t}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {(detail.data?.members.length ?? 0) === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">No members yet</p>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -410,16 +367,40 @@ function CreateGroupDialog({
   open,
   onOpenChange,
   type,
+  group,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: GroupType;
+  group?: Group | null;
 }) {
+  const qc = useQueryClient();
   const [name, setName] = useState("");
   const [rules, setRules] = useState<Rule[]>([
     { id: "r1", field: "city", operator: "equals", value: "", logic: "AND" },
   ]);
-  const [matchCount, setMatchCount] = useState(0);
+
+  // Prefill when editing
+  useEffect(() => {
+    if (open && group) {
+      setName(group.name);
+      setRules(
+        (group.rules ?? []).map((r, i) => ({
+          id: `r${i + 1}`,
+          field: r.field,
+          operator: r.operator,
+          value: r.value,
+          logic: r.logic ?? "AND",
+        })),
+      );
+      if ((group.rules ?? []).length === 0) {
+        setRules([{ id: "r1", field: "city", operator: "equals", value: "", logic: "AND" }]);
+      }
+    } else if (open) {
+      setName("");
+      setRules([{ id: "r1", field: "city", operator: "equals", value: "", logic: "AND" }]);
+    }
+  }, [open, group]);
 
   const addRule = () => {
     setRules([
@@ -442,19 +423,43 @@ function CreateGroupDialog({
     setRules(rules.map((r) => (r.id === id ? { ...r, ...updates } : r)));
   };
 
-  // Simulate live match count
-  const updateMatchCount = () => {
-    // This would call the API to get real count
-    const simulatedCount = Math.floor(Math.random() * 40) + 5;
-    setMatchCount(simulatedCount);
-  };
+  const save = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        name,
+        kind: type,
+        ...(type === "dynamic"
+          ? {
+              rules: rules.map(({ field, operator, value, logic }) => ({
+                field,
+                operator,
+                value,
+                logic,
+              })),
+            }
+          : {}),
+      };
+      if (group) {
+        return api.groups.update(group.id, payload);
+      }
+      return api.groups.create(payload);
+    },
+    onSuccess: () => {
+      toast.success(
+        group ? "Group updated" : `${type === "dynamic" ? "Segment" : "Group"} created`,
+      );
+      qc.invalidateQueries({ queryKey: ["groups"] });
+      onOpenChange(false);
+    },
+    onError: () => toast.error("Couldn't save group"),
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            Create {type === "dynamic" ? "dynamic segment" : "static group"}
+            {group ? "Edit" : "Create"} {type === "dynamic" ? "dynamic segment" : "static group"}
           </DialogTitle>
           <DialogDescription>
             {type === "dynamic"
@@ -478,23 +483,17 @@ function CreateGroupDialog({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium">Rules</h3>
-                <Badge variant="outline">Matches {matchCount} contacts</Badge>
               </div>
 
               <div className="space-y-3">
                 {rules.map((rule, index) => (
-                  <div
-                    key={rule.id}
-                    className="flex items-start gap-2 rounded-lg border p-3"
-                  >
+                  <div key={rule.id} className="flex items-start gap-2 rounded-lg border p-3">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2">
                         {index > 0 && (
                           <Select
                             value={rule.logic}
-                            onValueChange={(v: "AND" | "OR") =>
-                              updateRule(rule.id, { logic: v })
-                            }
+                            onValueChange={(v: "AND" | "OR") => updateRule(rule.id, { logic: v })}
                           >
                             <SelectTrigger className="w-20">
                               <SelectValue />
@@ -507,9 +506,7 @@ function CreateGroupDialog({
                         )}
                         <Select
                           value={rule.field}
-                          onValueChange={(v) =>
-                            updateRule(rule.id, { field: v })
-                          }
+                          onValueChange={(v) => updateRule(rule.id, { field: v })}
                         >
                           <SelectTrigger className="flex-1">
                             <SelectValue />
@@ -525,7 +522,7 @@ function CreateGroupDialog({
                         <Select
                           value={rule.operator}
                           onValueChange={(v) =>
-                            updateRule(rule.id, { operator: v })
+                            updateRule(rule.id, { operator: v as Rule["operator"] })
                           }
                         >
                           <SelectTrigger className="flex-1">
@@ -543,18 +540,11 @@ function CreateGroupDialog({
                       <Input
                         placeholder="Value"
                         value={rule.value}
-                        onChange={(e) => {
-                          updateRule(rule.id, { value: e.target.value });
-                          updateMatchCount();
-                        }}
+                        onChange={(e) => updateRule(rule.id, { value: e.target.value })}
                       />
                     </div>
                     {rules.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeRule(rule.id)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => removeRule(rule.id)}>
                         <X className="size-4" />
                       </Button>
                     )}
@@ -562,12 +552,7 @@ function CreateGroupDialog({
                 ))}
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addRule}
-                className="w-full"
-              >
+              <Button variant="outline" size="sm" onClick={addRule} className="w-full">
                 <Plus className="mr-2 size-4" />
                 Add rule
               </Button>
@@ -579,9 +564,7 @@ function CreateGroupDialog({
               <Label>Members</Label>
               <div className="rounded-md border p-8 text-center">
                 <Users className="size-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground mb-4">
-                  Add contacts to this group
-                </p>
+                <p className="text-sm text-muted-foreground mb-4">Add contacts to this group</p>
                 <Button variant="outline" size="sm">
                   <Plus className="mr-2 size-4" />
                   Add contacts
@@ -596,17 +579,11 @@ function CreateGroupDialog({
             Cancel
           </Button>
           <Button
-            onClick={() => {
-              toast.success(
-                `${type === "dynamic" ? "Segment" : "Group"} created successfully`,
-              );
-              onOpenChange(false);
-            }}
-            disabled={
-              !name || (type === "dynamic" && rules.some((r) => !r.value))
-            }
+            onClick={() => save.mutate()}
+            loading={save.isPending}
+            disabled={!name || (type === "dynamic" && rules.some((r) => !r.value))}
           >
-            Create {type === "dynamic" ? "segment" : "group"}
+            {group ? "Save changes" : `Create ${type === "dynamic" ? "segment" : "group"}`}
           </Button>
         </DialogFooter>
       </DialogContent>

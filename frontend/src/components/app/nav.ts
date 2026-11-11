@@ -99,7 +99,4 @@ export const SETTINGS_ITEM: NavItem = {
   icon: Settings,
 };
 
-export const ALL_NAV: NavItem[] = [
-  ...NAV_GROUPS.flatMap((g) => g.items),
-  SETTINGS_ITEM,
-];
+export const ALL_NAV: NavItem[] = [...NAV_GROUPS.flatMap((g) => g.items), SETTINGS_ITEM];

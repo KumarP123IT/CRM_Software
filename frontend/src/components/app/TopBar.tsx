@@ -28,11 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Kbd } from "@/components/shared";
 import { useUi } from "@/stores/ui";
@@ -68,32 +64,16 @@ function Breadcrumbs() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const item = ALL_NAV.find((n) => pathname.startsWith(n.to));
-  const label = item
-    ? t(`nav.${item.key}`)
-    : pathname === "/design"
-      ? "Design system"
-      : "";
+  const label = item ? t(`nav.${item.key}`) : pathname === "/design" ? "Design system" : "";
   return (
-    <nav
-      aria-label="Breadcrumb"
-      className="hidden min-w-0 items-center gap-1.5 text-base sm:flex"
-    >
-      <Link
-        to="/dashboard"
-        className="text-muted-foreground hover:text-foreground"
-      >
+    <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-base sm:flex">
+      <Link to="/dashboard" className="text-muted-foreground hover:text-foreground">
         Konvo
       </Link>
       {label && (
         <>
-          <ChevronRight
-            className="size-3.5 text-muted-foreground"
-            aria-hidden
-          />
-          <span
-            className="truncate font-medium text-foreground"
-            aria-current="page"
-          >
+          <ChevronRight className="size-3.5 text-muted-foreground" aria-hidden />
+          <span className="truncate font-medium text-foreground" aria-current="page">
             {label}
           </span>
         </>
@@ -115,14 +95,10 @@ function NewMenu() {
         <DropdownMenuItem onSelect={() => toast("New chat is coming soon")}>
           <MessageSquarePlus className="size-4" /> Chat
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => toast("New contact form is coming soon")}
-        >
+        <DropdownMenuItem onSelect={() => toast("New contact form is coming soon")}>
           <UserPlus className="size-4" /> Contact
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => toast("New lead form is coming soon")}
-        >
+        <DropdownMenuItem onSelect={() => toast("New lead form is coming soon")}>
           <Target className="size-4" /> Lead
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -132,9 +108,7 @@ function NewMenu() {
           <Megaphone className="size-4" /> Broadcast
         </DropdownMenuItem>
         {!broadcast.allowed && (
-          <p className="px-2 pb-1.5 text-xs text-muted-foreground">
-            {broadcast.reason}
-          </p>
+          <p className="px-2 pb-1.5 text-xs text-muted-foreground">{broadcast.reason}</p>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -168,9 +142,7 @@ function Notifications() {
             variant="link"
             size="sm"
             className="h-auto p-0"
-            onClick={() =>
-              setItems((s) => s.map((n) => ({ ...n, unread: false })))
-            }
+            onClick={() => setItems((s) => s.map((n) => ({ ...n, unread: false })))}
           >
             Mark all read
           </Button>
@@ -237,10 +209,7 @@ export function TopBar() {
       <Sheet open={mobileNav} onOpenChange={setMobileNav}>
         <SheetContent side="left" className="w-[280px] bg-sidebar p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <SidebarContent
-            collapsed={false}
-            onNavigate={() => setMobileNav(false)}
-          />
+          <SidebarContent collapsed={false} onNavigate={() => setMobileNav(false)} />
         </SheetContent>
       </Sheet>
 
@@ -264,30 +233,20 @@ export function TopBar() {
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Help"
-              className="hidden sm:inline-flex"
-            >
+            <Button variant="ghost" size="icon" aria-label="Help" className="hidden sm:inline-flex">
               <HelpCircle className="size-[18px]" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Help
-            </DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Help</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => setShortcutsOpen(true)}>
-              <Keyboard className="size-4" /> Keyboard shortcuts{" "}
-              <Kbd className="ml-auto">?</Kbd>
+              <Keyboard className="size-4" /> Keyboard shortcuts <Kbd className="ml-auto">?</Kbd>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => toast("Guides are coming soon")}>
               <BookOpen className="size-4" /> Guides
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => toast("We'll reply on WhatsApp within an hour")}
-            >
+            <DropdownMenuItem onSelect={() => toast("We'll reply on WhatsApp within an hour")}>
               <LifeBuoy className="size-4" /> Talk to us
             </DropdownMenuItem>
           </DropdownMenuContent>

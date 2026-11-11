@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PhoneCall } from "lucide-react";
-import { ComingSoon } from "@/features/placeholder/ComingSoon";
+import { Calls } from "@/features/calls/Calls";
 
 export const Route = createFileRoute("/_authenticated/calls")({
   head: () => ({
@@ -11,14 +10,5 @@ export const Route = createFileRoute("/_authenticated/calls")({
       { property: "og:description", content: "Call reminders and history." },
     ],
   }),
-  component: () => (
-    <ComingSoon
-      title="Calls"
-      description="Call reminders and history."
-      icon={PhoneCall}
-      emptyTitle="Nothing here yet"
-      emptyText="Call reminders and history."
-      cta="Get started"
-    />
-  ),
+  component: Calls,
 });

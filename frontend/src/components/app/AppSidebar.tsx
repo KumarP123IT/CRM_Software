@@ -19,11 +19,7 @@ import { can, ROLE_LABEL } from "@/lib/permissions";
 import { PresenceAvatar } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,8 +50,7 @@ function NavLink({
         collapsed && "justify-center px-0",
       )}
       activeProps={{
-        className:
-          "bg-sidebar-accent text-sidebar-accent-foreground [&_svg]:text-sidebar-primary",
+        className: "bg-sidebar-accent text-sidebar-accent-foreground [&_svg]:text-sidebar-primary",
       }}
     >
       <item.icon
@@ -102,26 +97,18 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
                   {current?.name ?? "Loading…"}
                 </span>
                 {current && (
-                  <Badge
-                    variant="default"
-                    className="mt-0.5 px-1.5 py-0 text-[11px]"
-                  >
+                  <Badge variant="default" className="mt-0.5 px-1.5 py-0 text-[11px]">
                     {current.plan}
                   </Badge>
                 )}
               </span>
-              <ChevronsUpDown
-                className="size-4 text-muted-foreground"
-                aria-hidden
-              />
+              <ChevronsUpDown className="size-4 text-muted-foreground" aria-hidden />
             </>
           )}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">
-          Workspaces
-        </DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Workspaces</DropdownMenuLabel>
         {data.map((w) => (
           <DropdownMenuItem
             key={w.id}
@@ -138,9 +125,7 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onSelect={() => toast("Workspace creation is coming soon")}
-        >
+        <DropdownMenuItem onSelect={() => toast("Workspace creation is coming soon")}>
           <Plus className="size-4" /> Create workspace
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -163,12 +148,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
           )}
           aria-label="Account menu"
         >
-          <PresenceAvatar
-            name={user.name}
-            tone={user.avatarColor}
-            online
-            size="sm"
-          />
+          <PresenceAvatar name={user.name} tone={user.avatarColor} online size="sm" />
           {!collapsed && (
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium text-foreground">
@@ -184,9 +164,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
       <DropdownMenuContent side="top" align="start" className="w-56">
         <DropdownMenuLabel>
           <span className="block text-sm">{user.name}</span>
-          <span className="block text-xs font-normal text-muted-foreground">
-            {user.email}
-          </span>
+          <span className="block text-xs font-normal text-muted-foreground">{user.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => navigate({ to: "/settings" })}>
@@ -219,10 +197,7 @@ export function SidebarContent({
       <div className="p-3">
         <WorkspaceSwitcher collapsed={collapsed} />
       </div>
-      <nav
-        aria-label="Main"
-        className="flex-1 space-y-5 overflow-y-auto px-3 py-2"
-      >
+      <nav aria-label="Main" className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
         {NAV_GROUPS.map((g) => {
           const items = g.items.filter((i) => !i.perm || can(role, i.perm));
           if (!items.length) return null;
@@ -233,19 +208,12 @@ export function SidebarContent({
                   {t(`nav.${g.key}`)}
                 </p>
               ) : (
-                <div
-                  className="mx-auto mb-2 h-px w-6 bg-sidebar-border"
-                  aria-hidden
-                />
+                <div className="mx-auto mb-2 h-px w-6 bg-sidebar-border" aria-hidden />
               )}
               <ul className="space-y-0.5">
                 {items.map((i) => (
                   <li key={i.key}>
-                    <NavLink
-                      item={i}
-                      collapsed={collapsed}
-                      onNavigate={onNavigate}
-                    />
+                    <NavLink item={i} collapsed={collapsed} onNavigate={onNavigate} />
                   </li>
                 ))}
               </ul>
@@ -254,11 +222,7 @@ export function SidebarContent({
         })}
       </nav>
       <div className="space-y-1 border-t border-sidebar-border p-3">
-        <NavLink
-          item={SETTINGS_ITEM}
-          collapsed={collapsed}
-          onNavigate={onNavigate}
-        />
+        <NavLink item={SETTINGS_ITEM} collapsed={collapsed} onNavigate={onNavigate} />
         <UserMenu collapsed={collapsed} />
       </div>
     </div>

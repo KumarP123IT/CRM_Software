@@ -1,11 +1,15 @@
 import type { ApiError } from "./types";
 
-const BASE_URL: string = import.meta.env["VITE_API_BASE_URL"] ?? "/api";
+export const BASE_URL: string = import.meta.env["VITE_API_BASE_URL"] ?? "/api";
 
 let tokenGetter: () => string | null = () => null;
 /** Auth store registers how to read the current token. */
 export function setTokenGetter(fn: () => string | null) {
   tokenGetter = fn;
+}
+/** Current auth token — used by transports that can't set headers (SSE). */
+export function getAuthToken(): string | null {
+  return tokenGetter();
 }
 
 export class HttpError extends Error implements ApiError {
@@ -56,10 +60,7 @@ interface RequestOptions {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function http<T>(
-  path: string,
-  opts: RequestOptions = {},
-): Promise<T> {
+export async function http<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { method = "GET", body, query, signal } = opts;
   // Only idempotent requests retry by default.
   const retries = opts.retries ?? (method === "GET" ? 2 : 0);
@@ -104,4 +105,30 @@ export async function http<T>(
       throw normalize(0, undefined);
     }
   }
+}
+
+/** GET that returns raw text (e.g. CSV exports). */
+export async function httpText(path: string, query?: RequestOptions["query"]): Promise<string> {
+  const url = new URL(
+    BASE_URL + path,
+    typeof window !== "undefined" ? window.location.origin : "http://localhost",
+  );
+  if (query)
+    for (const [k, v] of Object.entries(query))
+      if (v !== undefined) url.searchParams.set(k, String(v));
+  const token = tokenGetter();
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = undefined;
+    }
+    throw normalize(res.status, body);
+  }
+  return res.text();
 }

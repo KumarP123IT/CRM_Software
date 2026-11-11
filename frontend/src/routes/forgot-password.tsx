@@ -29,18 +29,15 @@ function ForgotPassword() {
 
   // Cooldown timer effect
   useEffect(() => {
-    if (cooldown > 0) {
-      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    return () => clearTimeout(timer);
   }, [cooldown]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cooldown > 0) {
-      toast.error(
-        `Please wait ${cooldown} seconds before requesting another email`,
-      );
+      toast.error(`Please wait ${cooldown} seconds before requesting another email`);
       return;
     }
     setLoading(true);
@@ -50,9 +47,7 @@ function ForgotPassword() {
       setSent(true);
       setCooldown(60); // 60 second cooldown
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Couldn't send reset email",
-      );
+      setError(err instanceof Error ? err.message : "Couldn't send reset email");
     } finally {
       setLoading(false);
     }
@@ -74,13 +69,10 @@ function ForgotPassword() {
           <>
             <h1 className="text-2xl font-bold">Check your email</h1>
             <p className="text-muted-foreground">
-              We sent a password reset link to {email}. Click the link to set a
-              new password.
+              We sent a password reset link to {email}. Click the link to set a new password.
             </p>
             <div className="mt-4 p-4 rounded-lg bg-muted/50">
-              <p className="text-sm text-muted-foreground mb-2">
-                Didn't receive it?
-              </p>
+              <p className="text-sm text-muted-foreground mb-2">Didn't receive it?</p>
               <Button
                 variant="outline"
                 size="sm"
@@ -124,20 +116,12 @@ function ForgotPassword() {
               />
             </div>
             {error && (
-              <p
-                role="alert"
-                className="text-sm text-destructive flex items-center gap-2"
-              >
+              <p role="alert" className="text-sm text-destructive flex items-center gap-2">
                 <AlertCircle className="size-4" />
                 {error}
               </p>
             )}
-            <Button
-              type="submit"
-              loading={loading}
-              disabled={!email}
-              className="w-full"
-            >
+            <Button type="submit" loading={loading} disabled={!email} className="w-full">
               Send reset link
             </Button>
             <Button
@@ -152,9 +136,7 @@ function ForgotPassword() {
         )}
       </form>
       <div className="bg-panel hidden flex-col justify-center gap-4 p-12 lg:flex">
-        <p className="font-display text-2xl font-bold">
-          One inbox for your whole team.
-        </p>
+        <p className="font-display text-2xl font-bold">One inbox for your whole team.</p>
         <p>Reply faster on WhatsApp.</p>
         <p>Never lose a lead.</p>
         <p>Message everyone in one tap.</p>

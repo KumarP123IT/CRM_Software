@@ -1,27 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Rocket } from "lucide-react";
-import { ComingSoon } from "@/features/placeholder/ComingSoon";
+import { Campaigns } from "@/features/campaigns/Campaigns";
 
 export const Route = createFileRoute("/_authenticated/campaigns")({
   head: () => ({
     meta: [
       { title: "Campaigns — Konvo" },
-      { name: "description", content: "Plan a series of messages over time." },
+      { name: "description", content: "Group broadcasts into coordinated marketing pushes." },
       { property: "og:title", content: "Campaigns — Konvo" },
       {
         property: "og:description",
-        content: "Plan a series of messages over time.",
+        content: "Group broadcasts into coordinated marketing pushes.",
       },
     ],
   }),
-  component: () => (
-    <ComingSoon
-      title="Campaigns"
-      description="Plan a series of messages over time."
-      icon={Rocket}
-      emptyTitle="Nothing here yet"
-      emptyText="Plan a series of messages over time."
-      cta="Get started"
-    />
-  ),
+  component: Campaigns,
 });

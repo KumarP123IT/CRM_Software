@@ -1,22 +1,23 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Smartphone,
+  Send,
   Plus,
-  Check,
   AlertCircle,
-  Clock,
   Shield,
   Zap,
-  RefreshCw,
   Trash2,
   MessageSquare,
-  Settings,
+  Globe,
+  SendHorizontal,
+  ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -26,39 +27,65 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
 import { EmptyState, ListSkeleton, PageHeader } from "@/components/shared";
 import { toast } from "sonner";
-import { api } from "@/api";
+import { api, type Channel, type ConnectInboxInput, type Inbox } from "@/api";
 import { cn } from "@/lib/utils";
+
+const CHANNEL_META: Record<Channel, { label: string; icon: typeof Send; hint: string }> = {
+  telegram: {
+    label: "Telegram",
+    icon: Send,
+    hint: "Create a bot with @BotFather and paste its token.",
+  },
+  web: {
+    label: "Web chat",
+    icon: Globe,
+    hint: "Embed a chat widget on your website. Visitors message you in real time.",
+  },
+  whatsapp: {
+    label: "WhatsApp Business",
+    icon: MessageSquare,
+    hint: "Connect via Meta Embedded Signup (Cloud API).",
+  },
+  instagram: { label: "Instagram", icon: MessageSquare, hint: "Coming soon." },
+  messenger: { label: "Messenger", icon: MessageSquare, hint: "Coming soon." },
+  sms: { label: "SMS", icon: MessageSquare, hint: "Coming soon." },
+  email: { label: "Email", icon: MessageSquare, hint: "Coming soon." },
+};
+
+const CONNECTABLE: Channel[] = ["telegram", "web", "whatsapp"];
 
 export function Inboxes() {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [step, setStep] = useState(1);
-  const [testMessageSent, setTestMessageSent] = useState(false);
 
   const q = useQuery({
     queryKey: ["inboxes"],
     queryFn: () => api.inboxes.list(),
   });
 
+  const update = useMutation({
+    mutationFn: ({ id, input }: { id: string; input: { name?: string; autoAssign?: boolean } }) =>
+      api.inboxes.update(id, input),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["inboxes"] }),
+    onError: () => toast.error("Failed to update inbox"),
+  });
+
   const disconnect = useMutation({
     mutationFn: (id: string) => api.inboxes.disconnect(id),
     onSuccess: () => {
-      toast.success("WhatsApp disconnected");
+      toast.success("Channel disconnected");
       void qc.invalidateQueries({ queryKey: ["inboxes"] });
     },
     onError: () => toast.error("Failed to disconnect"),
   });
 
-  const sendTestMessage = useMutation({
-    mutationFn: (id: string) => api.inboxes.sendTestMessage(id),
-    onSuccess: () => {
-      setTestMessageSent(true);
-      toast.success("Test message sent");
-    },
-    onError: () => toast.error("Failed to send test message"),
+  const test = useMutation({
+    mutationFn: (id: string) => api.inboxes.test(id),
+    onSuccess: (r) =>
+      r.ok ? toast.success("Channel is healthy") : toast.error(r.detail ?? "Health check failed"),
+    onError: () => toast.error("Health check failed"),
   });
 
   if (q.isPending) return <ListSkeleton />;
@@ -70,304 +97,363 @@ export function Inboxes() {
       </Alert>
     );
 
-  const inboxes = q.data ?? [];
+  const { supported, items: inboxes } = q.data;
+  const connectable = CONNECTABLE.filter((t) => supported.includes(t));
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Inboxes"
-        description="Connect your WhatsApp Business numbers to receive and send messages."
-        action={
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="size-4 mr-2" />
-            Connect WhatsApp
-          </Button>
+        title="Channels"
+        description="Connect messaging channels to receive and send messages from the inbox."
+        actions={
+          connectable.length > 0 ? (
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="size-4 mr-2" />
+              Connect channel
+            </Button>
+          ) : undefined
         }
       />
 
       {inboxes.length === 0 ? (
         <EmptyState
-          icon={Smartphone}
-          title="No inboxes connected"
-          description="Connect your WhatsApp Business number to start messaging your customers."
+          icon={MessageSquare}
+          title="No channels connected"
+          description="Connect Telegram, your website widget, or WhatsApp Business to start messaging customers."
           action={
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="size-4 mr-2" />
-              Connect WhatsApp
-            </Button>
+            connectable.length > 0 ? (
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="size-4 mr-2" />
+                Connect channel
+              </Button>
+            ) : undefined
           }
         />
       ) : (
         <div className="grid gap-4">
           {inboxes.map((inbox) => (
-            <Card key={inbox.id} className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="flex size-12 items-center justify-center rounded-full bg-success-soft">
-                    <MessageSquare className="size-6 text-success" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">{inbox.name}</h3>
-                      <Badge
-                        variant={inbox.status === "connected" ? "default" : "destructive"}
-                      >
-                        {inbox.status}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{inbox.phoneNumber}</p>
-                    <div className="flex items-center gap-3 mt-2">
-                      {inbox.qualityRating && (
-                        <div className="flex items-center gap-1 text-xs">
-                          <Shield className="size-3" />
-                          <span className="text-muted-foreground">Quality:</span>
-                          <span className="font-medium">{inbox.qualityRating}</span>
-                        </div>
-                      )}
-                      {inbox.messagingTier && (
-                        <div className="flex items-center gap-1 text-xs">
-                          <Zap className="size-3" />
-                          <span className="text-muted-foreground">Tier:</span>
-                          <span className="font-medium">{inbox.messagingTier}</span>
-                        </div>
-                      )}
-                    </div>
-                    {inbox.webhookVerified === false && (
-                      <Alert variant="destructive" className="mt-3">
-                        <AlertCircle className="size-4" />
-                        <AlertDescription>
-                          Webhook not verified. Incoming messages may not be received.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={inbox.autoAssign}
-                    onCheckedChange={(checked) =>
-                      toast.success(inbox.autoAssign ? "Auto-assign disabled" : "Auto-assign enabled")
-                    }
-                  />
-                  <span className="text-sm text-muted-foreground">Auto-assign</span>
-                  <Button variant="ghost" size="sm" onClick={() => sendTestMessage.mutate(inbox.id)}>
-                    Test
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => disconnect.mutate(inbox.id)}>
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
+            <InboxCard
+              key={inbox.id}
+              inbox={inbox}
+              onToggleAutoAssign={(v) => update.mutate({ id: inbox.id, input: { autoAssign: v } })}
+              onTest={() => test.mutate(inbox.id)}
+              onDisconnect={() => disconnect.mutate(inbox.id)}
+            />
           ))}
         </div>
       )}
 
-      <ConnectWizard
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        step={step}
-        setStep={setStep}
-        testMessageSent={testMessageSent}
-        setTestMessageSent={setTestMessageSent}
-      />
+      <ConnectDialog open={dialogOpen} onOpenChange={setDialogOpen} supported={connectable} />
     </div>
   );
 }
 
-function ConnectWizard({
+function InboxCard({
+  inbox,
+  onToggleAutoAssign,
+  onTest,
+  onDisconnect,
+}: {
+  inbox: Inbox;
+  onToggleAutoAssign: (v: boolean) => void;
+  onTest: () => void;
+  onDisconnect: () => void;
+}) {
+  const meta = CHANNEL_META[inbox.type];
+  const Icon = meta.icon;
+  const connected = inbox.status === "connected";
+  return (
+    <Card className="p-6">
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4">
+          <div
+            className={cn(
+              "flex size-12 items-center justify-center rounded-full",
+              connected ? "bg-success-soft" : "bg-muted",
+            )}
+          >
+            <Icon className={cn("size-6", connected ? "text-success" : "text-muted-foreground")} />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">{inbox.name}</h3>
+              <Badge variant="secondary">{meta.label}</Badge>
+              <Badge variant={connected ? "default" : "destructive"}>{inbox.status}</Badge>
+            </div>
+            {inbox.phoneNumber && (
+              <p className="text-sm text-muted-foreground">{inbox.phoneNumber}</p>
+            )}
+            <div className="flex items-center gap-3 mt-2">
+              {inbox.qualityRating && (
+                <div className="flex items-center gap-1 text-xs">
+                  <Shield className="size-3" />
+                  <span className="text-muted-foreground">Quality:</span>
+                  <span className="font-medium">{inbox.qualityRating}</span>
+                </div>
+              )}
+              {inbox.messagingTier && (
+                <div className="flex items-center gap-1 text-xs">
+                  <Zap className="size-3" />
+                  <span className="text-muted-foreground">Tier:</span>
+                  <span className="font-medium">{inbox.messagingTier}</span>
+                </div>
+              )}
+            </div>
+            {!inbox.webhookVerified && (
+              <Alert variant="destructive" className="mt-3">
+                <AlertCircle className="size-4" />
+                <AlertDescription>
+                  Webhook not verified. Incoming messages may not be received.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={inbox.autoAssign}
+              onCheckedChange={onToggleAutoAssign}
+              disabled={!connected}
+            />
+            <span className="text-sm text-muted-foreground">Auto-assign</span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onTest} disabled={!connected}>
+            Test
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onDisconnect}>
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ---------------- connect dialog ---------------- */
+
+function ConnectDialog({
   open,
   onOpenChange,
-  step,
-  setStep,
-  testMessageSent,
-  setTestMessageSent,
+  supported,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  step: number;
-  setStep: (step: number) => void;
-  testMessageSent: boolean;
-  setTestMessageSent: (sent: boolean) => void;
+  supported: Channel[];
 }) {
   const qc = useQueryClient();
-  const [loading, setLoading] = useState(false);
-
-  const connectWaba = useMutation({
-    mutationFn: (code: string) => api.inboxes.connectWaba(code),
-    onSuccess: () => {
-      toast.success("WhatsApp connected successfully");
-      void qc.invalidateQueries({ queryKey: ["inboxes"] });
-      setStep(4);
-    },
-    onError: () => toast.error("Failed to connect WhatsApp"),
+  const [step, setStep] = useState<"pick" | Channel>("pick");
+  const [form, setForm] = useState({
+    name: "",
+    domain: "",
+    botToken: "",
+    code: "",
+    phoneNumberId: "",
+    businessAccountId: "",
   });
 
-  const launchEmbeddedSignup = () => {
-    setLoading(true);
-    // Mock: Simulate Embedded Signup redirect
-    setTimeout(() => {
-      setLoading(false);
-      setStep(3);
-    }, 2000);
+  const connect = useMutation({
+    mutationFn: (input: ConnectInboxInput) => api.inboxes.connect(input),
+    onSuccess: (inbox) => {
+      toast.success(`${CHANNEL_META[inbox.type].label} connected`);
+      void qc.invalidateQueries({ queryKey: ["inboxes"] });
+      onOpenChange(false);
+      setStep("pick");
+      setForm({
+        name: "",
+        domain: "",
+        botToken: "",
+        code: "",
+        phoneNumberId: "",
+        businessAccountId: "",
+      });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to connect channel"),
+  });
+
+  const submit = () => {
+    if (step === "telegram") {
+      connect.mutate({
+        type: "telegram",
+        botToken: form.botToken.trim(),
+        ...(form.name.trim() ? { name: form.name.trim() } : {}),
+      });
+    } else if (step === "web") {
+      connect.mutate({
+        type: "web",
+        name: form.name.trim(),
+        ...(form.domain.trim() ? { domain: form.domain.trim() } : {}),
+      });
+    } else if (step === "whatsapp") {
+      connect.mutate({
+        type: "whatsapp",
+        code: form.code.trim(),
+        phoneNumberId: form.phoneNumberId.trim(),
+        ...(form.businessAccountId.trim()
+          ? { businessAccountId: form.businessAccountId.trim() }
+          : {}),
+      });
+    }
   };
 
-  const completeWizard = () => {
-    onOpenChange(false);
-    setStep(1);
-    setTestMessageSent(false);
-  };
-
-  const steps = [
-    {
-      title: "What you need",
-      icon: Check,
-      content: (
-        <div className="space-y-4">
-          <Alert>
-            <Check className="size-4" />
-            <AlertDescription>
-              Make sure you have a Meta Business account and a WhatsApp Business account.
-            </AlertDescription>
-          </Alert>
-          <Alert>
-            <Check className="size-4" />
-            <AlertDescription>
-              Your phone number should not already be on the WhatsApp app.
-            </AlertDescription>
-          </Alert>
-          <Alert>
-            <Check className="size-4" />
-            <AlertDescription>
-              You need admin access to the Meta Business account.
-            </AlertDescription>
-          </Alert>
-        </div>
-      ),
-    },
-    {
-      title: "Connect with Meta",
-      icon: Settings,
-      content: (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Click the button below to open Meta's Embedded Signup. This will connect your WhatsApp
-            Business account to Konvo.
-          </p>
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={launchEmbeddedSignup}
-            loading={loading}
-          >
-            <MessageSquare className="size-4 mr-2" />
-            Launch Embedded Signup
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            You'll be redirected to Meta to authorize Konvo.
-          </p>
-        </div>
-      ),
-    },
-    {
-      title: "Choose phone number",
-      icon: Smartphone,
-      content: (
-        <div className="space-y-4">
-          <div className="space-y-3">
-            <Card className="p-4 cursor-pointer border-primary bg-primary-soft">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">+91 98765 43210</p>
-                  <p className="text-sm text-muted-foreground">Business Verified</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge>High Quality</Badge>
-                  <Badge>Tier 2</Badge>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-4 cursor-pointer hover:bg-muted">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">+91 98765 43211</p>
-                  <p className="text-sm text-muted-foreground">Not Verified</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">Medium Quality</Badge>
-                  <Badge variant="secondary">Tier 1</Badge>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "You're all set!",
-      icon: Check,
-      content: (
-        <div className="space-y-4">
-          <Alert className="border-success bg-success-soft text-success">
-            <Check className="size-4" />
-            <AlertDescription>
-              Your WhatsApp Business number is now connected and ready to use.
-            </AlertDescription>
-          </Alert>
-          <Button
-            className="w-full"
-            variant="outline"
-            onClick={() => setTestMessageSent(true)}
-            disabled={testMessageSent}
-          >
-            <MessageSquare className="size-4 mr-2" />
-            {testMessageSent ? "Test message sent!" : "Send test message"}
-          </Button>
-        </div>
-      ),
-    },
-  ];
-
-  const currentStep = steps[step - 1];
-  const progress = (step / steps.length) * 100;
+  const canSubmit =
+    step === "telegram"
+      ? form.botToken.trim().length >= 10
+      : step === "web"
+        ? form.name.trim().length > 0
+        : step === "whatsapp"
+          ? form.code.trim().length > 0 && form.phoneNumberId.trim().length > 0
+          : false;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <currentStep.icon className="size-5" />
-            {currentStep.title}
+            {step !== "pick" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mr-1 h-7 w-7 p-0"
+                onClick={() => setStep("pick")}
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+            )}
+            {step === "pick" ? "Connect a channel" : `Connect ${CHANNEL_META[step].label}`}
           </DialogTitle>
           <DialogDescription>
-            Step {step} of {steps.length}
+            {step === "pick" ? "Choose a messaging channel to connect." : CHANNEL_META[step].hint}
           </DialogDescription>
         </DialogHeader>
 
-        <Progress value={progress} className="my-4" />
+        {step === "pick" ? (
+          <div className="grid gap-3 py-2">
+            {supported.map((type) => {
+              const meta = CHANNEL_META[type];
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={type}
+                  onClick={() => setStep(type)}
+                  className="flex items-center gap-3 rounded-lg border p-4 text-left transition-colors hover:border-primary hover:bg-primary-soft/40"
+                >
+                  <span className="flex size-10 items-center justify-center rounded-full bg-primary-soft text-primary">
+                    <Icon className="size-5" />
+                  </span>
+                  <span>
+                    <span className="block font-medium">{meta.label}</span>
+                    <span className="block text-sm text-muted-foreground">{meta.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="space-y-4 py-2">
+            {step === "telegram" && (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="tg-name">Display name (optional)</Label>
+                  <Input
+                    id="tg-name"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="e.g. Sales support"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="tg-token">Bot token</Label>
+                  <Input
+                    id="tg-token"
+                    type="password"
+                    value={form.botToken}
+                    onChange={(e) => setForm({ ...form, botToken: e.target.value })}
+                    placeholder="123456:ABC-DEF…"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Message @BotFather on Telegram to create a bot and get a token.
+                  </p>
+                </div>
+              </>
+            )}
+            {step === "web" && (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="web-name">Widget name</Label>
+                  <Input
+                    id="web-name"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="e.g. Website chat"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="web-domain">Allowed domain (optional)</Label>
+                  <Input
+                    id="web-domain"
+                    value={form.domain}
+                    onChange={(e) => setForm({ ...form, domain: e.target.value })}
+                    placeholder="example.com"
+                  />
+                </div>
+              </>
+            )}
+            {step === "whatsapp" && (
+              <>
+                <Alert>
+                  <AlertCircle className="size-4" />
+                  <AlertDescription>
+                    Requires Meta app credentials configured on the server. Paste the code and phone
+                    number id returned by Embedded Signup.
+                  </AlertDescription>
+                </Alert>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wa-code">Signup code</Label>
+                  <Input
+                    id="wa-code"
+                    value={form.code}
+                    onChange={(e) => setForm({ ...form, code: e.target.value })}
+                    placeholder="Embedded Signup code"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wa-pnid">Phone number ID</Label>
+                  <Input
+                    id="wa-pnid"
+                    value={form.phoneNumberId}
+                    onChange={(e) => setForm({ ...form, phoneNumberId: e.target.value })}
+                    placeholder="From Meta Embedded Signup"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wa-waba">WhatsApp Business Account ID (optional)</Label>
+                  <Input
+                    id="wa-waba"
+                    value={form.businessAccountId}
+                    onChange={(e) => setForm({ ...form, businessAccountId: e.target.value })}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
-        <div className="py-4">{currentStep.content}</div>
-
-        <DialogFooter>
-          {step > 1 && step < 4 && (
-            <Button variant="outline" onClick={() => setStep(step - 1)}>
+        {step !== "pick" && (
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStep("pick")}>
               Back
             </Button>
-          )}
-          {step < 3 && (
-            <Button onClick={() => setStep(step + 1)} disabled={step === 2 && loading}>
-              Next
-            </Button>
-          )}
-          {step === 3 && (
-            <Button onClick={() => connectWaba.mutate("mock-code")} loading={connectWaba.isPending}>
+            <Button
+              onClick={submit}
+              disabled={!canSubmit || connect.isPending}
+              loading={connect.isPending}
+            >
+              <SendHorizontal className="size-4 mr-2" />
               Connect
             </Button>
-          )}
-          {step === 4 && (
-            <Button onClick={completeWizard}>Done</Button>
-          )}
-        </DialogFooter>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

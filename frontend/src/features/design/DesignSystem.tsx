@@ -137,12 +137,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -244,29 +239,11 @@ export function DesignSystem() {
     },
     {
       name: "System",
-      icons: [
-        Cpu,
-        HardDrive,
-        MemoryStick,
-        Server,
-        Cloud,
-        Monitor,
-        Laptop,
-        Smartphone,
-        Tablet,
-      ],
+      icons: [Cpu, HardDrive, MemoryStick, Server, Cloud, Monitor, Laptop, Smartphone, Tablet],
     },
     {
       name: "Alerts",
-      icons: [
-        AlertCircle,
-        AlertTriangle,
-        Info,
-        CheckCircle,
-        XCircle,
-        AlertOctagon,
-        ShieldAlert,
-      ],
+      icons: [AlertCircle, AlertTriangle, Info, CheckCircle, XCircle, AlertOctagon, ShieldAlert],
     },
     {
       name: "Misc",
@@ -410,52 +387,32 @@ export function DesignSystem() {
             <h2 className="text-lg font-semibold mb-4">Typography Scale</h2>
             <div className="space-y-4">
               <div>
-                <p className="text-2xl font-display font-bold">
-                  Heading 1 - 32px
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Plus Jakarta Sans, Bold
-                </p>
+                <p className="text-2xl font-display font-bold">Heading 1 - 32px</p>
+                <p className="text-xs text-muted-foreground mt-1">Plus Jakarta Sans, Bold</p>
               </div>
               <div>
-                <p className="text-xl font-display font-bold">
-                  Heading 2 - 24px
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Plus Jakarta Sans, Bold
-                </p>
+                <p className="text-xl font-display font-bold">Heading 2 - 24px</p>
+                <p className="text-xs text-muted-foreground mt-1">Plus Jakarta Sans, Bold</p>
               </div>
               <div>
-                <p className="text-lg font-display font-semibold">
-                  Heading 3 - 20px
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Plus Jakarta Sans, Semibold
-                </p>
+                <p className="text-lg font-display font-semibold">Heading 3 - 20px</p>
+                <p className="text-xs text-muted-foreground mt-1">Plus Jakarta Sans, Semibold</p>
               </div>
               <div>
                 <p className="text-md font-medium">Body - 16px</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Inter, Medium
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Inter, Medium</p>
               </div>
               <div>
                 <p className="text-base">Body - 14px</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Inter, Regular
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Inter, Regular</p>
               </div>
               <div>
                 <p className="text-sm">Small - 13px</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Inter, Regular
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Inter, Regular</p>
               </div>
               <div>
                 <p className="text-xs">Extra Small - 12px</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Inter, Regular
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Inter, Regular</p>
               </div>
             </div>
             <Separator className="my-6" />
@@ -553,12 +510,8 @@ export function DesignSystem() {
                   <Badge variant="secondary">Secondary</Badge>
                   <Badge variant="outline">Outline</Badge>
                   <Badge variant="destructive">Destructive</Badge>
-                  <Badge className="bg-success text-success-foreground">
-                    Success
-                  </Badge>
-                  <Badge className="bg-warning text-warning-foreground">
-                    Warning
-                  </Badge>
+                  <Badge className="bg-success text-success-foreground">Success</Badge>
+                  <Badge className="bg-warning text-warning-foreground">Warning</Badge>
                 </div>
               </div>
               <div>
@@ -601,10 +554,7 @@ export function DesignSystem() {
                 <h3 className="text-sm font-medium mb-3">With images</h3>
                 <div className="flex items-center gap-4">
                   <Avatar>
-                    <AvatarImage
-                      src="https://github.com/shadcn.png"
-                      alt="@shadcn"
-                    />
+                    <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
                     <AvatarFallback>CN</AvatarFallback>
                   </Avatar>
                   <Avatar>
@@ -663,21 +613,14 @@ export function DesignSystem() {
                 <DialogHeader>
                   <DialogTitle>Are you sure?</DialogTitle>
                   <DialogDescription>
-                    This action cannot be undone. This will permanently delete
-                    your account.
+                    This action cannot be undone. This will permanently delete your account.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setDialogOpen(false)}
-                  >
+                  <Button variant="outline" onClick={() => setDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => setDialogOpen(false)}
-                  >
+                  <Button variant="destructive" onClick={() => setDialogOpen(false)}>
                     Delete
                   </Button>
                 </DialogFooter>
@@ -729,9 +672,7 @@ export function DesignSystem() {
 
         <TabsContent value="forms" className="space-y-6">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Input Fields - All States
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">Input Fields - All States</h2>
             <div className="space-y-4 max-w-md">
               <div>
                 <h3 className="text-sm font-medium mb-3">Default</h3>
@@ -743,19 +684,12 @@ export function DesignSystem() {
               <div>
                 <h3 className="text-sm font-medium mb-3">With error</h3>
                 <div className="space-y-2">
-                  <Input
-                    placeholder="Error state"
-                    className="border-destructive"
-                  />
-                  <p className="text-xs text-destructive">
-                    This field is required
-                  </p>
+                  <Input placeholder="Error state" className="border-destructive" />
+                  <p className="text-xs text-destructive">This field is required</p>
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-medium mb-3">
-                  With icons (visual placeholder)
-                </h3>
+                <h3 className="text-sm font-medium mb-3">With icons (visual placeholder)</h3>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input placeholder="Search..." className="pl-9" />
@@ -772,12 +706,7 @@ export function DesignSystem() {
               <div>
                 <h3 className="text-sm font-medium mb-3">Textarea</h3>
                 <Textarea placeholder="Enter multiple lines..." rows={4} />
-                <Textarea
-                  placeholder="Disabled textarea"
-                  rows={4}
-                  disabled
-                  className="mt-2"
-                />
+                <Textarea placeholder="Disabled textarea" rows={4} disabled className="mt-2" />
               </div>
             </div>
           </Card>
@@ -804,9 +733,7 @@ export function DesignSystem() {
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Checkbox - All States
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">Checkbox - All States</h2>
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Checkbox id="check1" />
@@ -831,11 +758,7 @@ export function DesignSystem() {
             <h2 className="text-lg font-semibold mb-4">Switch - All States</h2>
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Switch
-                  id="switch1"
-                  checked={switchState}
-                  onCheckedChange={setSwitchState}
-                />
+                <Switch id="switch1" checked={switchState} onCheckedChange={setSwitchState} />
                 <Label htmlFor="switch1">Unchecked</Label>
               </div>
               <div className="flex items-center gap-2">
@@ -854,9 +777,7 @@ export function DesignSystem() {
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Radio Group - All States
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">Radio Group - All States</h2>
             <RadioGroup defaultValue="option1">
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="option1" id="radio1" />
@@ -889,15 +810,8 @@ export function DesignSystem() {
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4">Slider</h2>
             <div className="max-w-md space-y-4">
-              <Slider
-                value={sliderValue}
-                onValueChange={setSliderValue}
-                max={100}
-                step={1}
-              />
-              <p className="text-sm text-muted-foreground">
-                Value: {sliderValue[0]}
-              </p>
+              <Slider value={sliderValue} onValueChange={setSliderValue} max={100} step={1} />
+              <p className="text-sm text-muted-foreground">Value: {sliderValue[0]}</p>
               <Slider defaultValue={[50]} disabled />
               <p className="text-sm text-muted-foreground">Disabled slider</p>
             </div>
@@ -910,16 +824,10 @@ export function DesignSystem() {
             <div className="space-y-4 max-w-md">
               <Progress value={progress} />
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => setProgress(Math.max(0, progress - 10))}
-                >
+                <Button size="sm" onClick={() => setProgress(Math.max(0, progress - 10))}>
                   -10%
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => setProgress(Math.min(100, progress + 10))}
-                >
+                <Button size="sm" onClick={() => setProgress(Math.min(100, progress + 10))}>
                   +10%
                 </Button>
               </div>
@@ -931,16 +839,10 @@ export function DesignSystem() {
             <div className="flex items-center gap-8">
               <ProgressRing value={progress} />
               <div className="space-y-2">
-                <Button
-                  size="sm"
-                  onClick={() => setProgress(Math.max(0, progress - 10))}
-                >
+                <Button size="sm" onClick={() => setProgress(Math.max(0, progress - 10))}>
                   -10%
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => setProgress(Math.min(100, progress + 10))}
-                >
+                <Button size="sm" onClick={() => setProgress(Math.min(100, progress + 10))}>
                   +10%
                 </Button>
               </div>
@@ -953,30 +855,22 @@ export function DesignSystem() {
               <Alert>
                 <Info className="size-4" />
                 <AlertTitle>Information</AlertTitle>
-                <AlertDescription>
-                  This is an informational alert.
-                </AlertDescription>
+                <AlertDescription>This is an informational alert.</AlertDescription>
               </Alert>
               <Alert variant="destructive">
                 <AlertCircle className="size-4" />
                 <AlertTitle>Error</AlertTitle>
-                <AlertDescription>
-                  Something went wrong. Please try again.
-                </AlertDescription>
+                <AlertDescription>Something went wrong. Please try again.</AlertDescription>
               </Alert>
               <Alert className="border-success bg-success-soft text-success">
                 <CheckCircle className="size-4" />
                 <AlertTitle>Success</AlertTitle>
-                <AlertDescription>
-                  Your changes have been saved.
-                </AlertDescription>
+                <AlertDescription>Your changes have been saved.</AlertDescription>
               </Alert>
               <Alert className="border-warning bg-warning-soft text-warning">
                 <AlertTriangle className="size-4" />
                 <AlertTitle>Warning</AlertTitle>
-                <AlertDescription>
-                  Please review before proceeding.
-                </AlertDescription>
+                <AlertDescription>Please review before proceeding.</AlertDescription>
               </Alert>
             </div>
           </Card>
@@ -1001,20 +895,13 @@ export function DesignSystem() {
               icon={Inbox}
               title="No items found"
               description="There are no items to display here."
-              action={
-                <Button onClick={() => toast("Action clicked")}>
-                  Create item
-                </Button>
-              }
+              action={<Button onClick={() => toast("Action clicked")}>Create item</Button>}
             />
           </Card>
 
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4">Error State</h2>
-            <ErrorState
-              message="Failed to load data"
-              onRetry={() => toast("Retrying...")}
-            />
+            <ErrorState message="Failed to load data" onRetry={() => toast("Retrying...")} />
           </Card>
 
           <Card className="p-6">
@@ -1042,22 +929,13 @@ export function DesignSystem() {
             <h2 className="text-lg font-semibold mb-4">Toast Notifications</h2>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => toast("Default toast")}>Default</Button>
-              <Button
-                variant="secondary"
-                onClick={() => toast.success("Success toast")}
-              >
+              <Button variant="secondary" onClick={() => toast.success("Success toast")}>
                 Success
               </Button>
-              <Button
-                variant="destructive"
-                onClick={() => toast.error("Error toast")}
-              >
+              <Button variant="destructive" onClick={() => toast.error("Error toast")}>
                 Error
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => toast.info("Info toast")}
-              >
+              <Button variant="outline" onClick={() => toast.info("Info toast")}>
                 Info
               </Button>
             </div>
@@ -1066,9 +944,7 @@ export function DesignSystem() {
 
         <TabsContent value="icons" className="space-y-6">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Icon Library (Lucide React)
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">Icon Library (Lucide React)</h2>
             <p className="text-sm text-muted-foreground mb-4">
               A selection of commonly used icons from Lucide React.
             </p>

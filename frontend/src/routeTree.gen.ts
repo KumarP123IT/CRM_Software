@@ -30,6 +30,26 @@ import { Route as AuthenticatedGroupsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated.leads'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated.settings'
 import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated.templates'
+import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated.settings.index'
+import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated.settings.appearance'
+import { Route as AuthenticatedSettingsAutoRepliesRouteImport } from './routes/_authenticated.settings.auto-replies'
+import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_authenticated.settings.billing'
+import { Route as AuthenticatedSettingsBusinessHoursRouteImport } from './routes/_authenticated.settings.business-hours'
+import { Route as AuthenticatedSettingsChatRouteImport } from './routes/_authenticated.settings.chat'
+import { Route as AuthenticatedSettingsCustomFieldsRouteImport } from './routes/_authenticated.settings.custom-fields'
+import { Route as AuthenticatedSettingsInboxesRouteImport } from './routes/_authenticated.settings.inboxes'
+import { Route as AuthenticatedSettingsInvoicesRouteImport } from './routes/_authenticated.settings.invoices'
+import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated.settings.notifications'
+import { Route as AuthenticatedSettingsOpenaiRouteImport } from './routes/_authenticated.settings.openai'
+import { Route as AuthenticatedSettingsRolesRouteImport } from './routes/_authenticated.settings.roles'
+import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated.settings.security'
+import { Route as AuthenticatedSettingsTagsRouteImport } from './routes/_authenticated.settings.tags'
+import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated.settings.team'
+import { Route as AuthenticatedSettingsTeamsRouteImport } from './routes/_authenticated.settings.teams'
+import { Route as AuthenticatedSettingsWebhooksRouteImport } from './routes/_authenticated.settings.webhooks'
+import { Route as AuthenticatedSettingsWidgetRouteImport } from './routes/_authenticated.settings.widget'
+import { Route as AuthenticatedSettingsWorkspaceSecurityRouteImport } from './routes/_authenticated.settings.workspace-security'
+import { Route as AuthenticatedSettingsWorkspacesRouteImport } from './routes/_authenticated.settings.workspaces'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -137,6 +157,126 @@ const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
   path: '/templates',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSettingsIndexRoute =
+  AuthenticatedSettingsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsAppearanceRoute =
+  AuthenticatedSettingsAppearanceRouteImport.update({
+    id: '/appearance',
+    path: '/appearance',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsAutoRepliesRoute =
+  AuthenticatedSettingsAutoRepliesRouteImport.update({
+    id: '/auto-replies',
+    path: '/auto-replies',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsBillingRoute =
+  AuthenticatedSettingsBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsBusinessHoursRoute =
+  AuthenticatedSettingsBusinessHoursRouteImport.update({
+    id: '/business-hours',
+    path: '/business-hours',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsChatRoute =
+  AuthenticatedSettingsChatRouteImport.update({
+    id: '/chat',
+    path: '/chat',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsCustomFieldsRoute =
+  AuthenticatedSettingsCustomFieldsRouteImport.update({
+    id: '/custom-fields',
+    path: '/custom-fields',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsInboxesRoute =
+  AuthenticatedSettingsInboxesRouteImport.update({
+    id: '/inboxes',
+    path: '/inboxes',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsInvoicesRoute =
+  AuthenticatedSettingsInvoicesRouteImport.update({
+    id: '/invoices',
+    path: '/invoices',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsNotificationsRoute =
+  AuthenticatedSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsOpenaiRoute =
+  AuthenticatedSettingsOpenaiRouteImport.update({
+    id: '/openai',
+    path: '/openai',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsRolesRoute =
+  AuthenticatedSettingsRolesRouteImport.update({
+    id: '/roles',
+    path: '/roles',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsSecurityRoute =
+  AuthenticatedSettingsSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsTagsRoute =
+  AuthenticatedSettingsTagsRouteImport.update({
+    id: '/tags',
+    path: '/tags',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsTeamRoute =
+  AuthenticatedSettingsTeamRouteImport.update({
+    id: '/team',
+    path: '/team',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsTeamsRoute =
+  AuthenticatedSettingsTeamsRouteImport.update({
+    id: '/teams',
+    path: '/teams',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsWebhooksRoute =
+  AuthenticatedSettingsWebhooksRouteImport.update({
+    id: '/webhooks',
+    path: '/webhooks',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsWidgetRoute =
+  AuthenticatedSettingsWidgetRouteImport.update({
+    id: '/widget',
+    path: '/widget',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsWorkspaceSecurityRoute =
+  AuthenticatedSettingsWorkspaceSecurityRouteImport.update({
+    id: '/workspace-security',
+    path: '/workspace-security',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsWorkspacesRoute =
+  AuthenticatedSettingsWorkspacesRouteImport.update({
+    id: '/workspaces',
+    path: '/workspaces',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -157,8 +297,28 @@ export interface FileRoutesByFullPath {
   '/design': typeof AuthenticatedDesignRoute
   '/groups': typeof AuthenticatedGroupsRoute
   '/leads': typeof AuthenticatedLeadsRoute
-  '/settings': typeof AuthenticatedSettingsRoute
+  '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/templates': typeof AuthenticatedTemplatesRoute
+  '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/auto-replies': typeof AuthenticatedSettingsAutoRepliesRoute
+  '/settings/billing': typeof AuthenticatedSettingsBillingRoute
+  '/settings/business-hours': typeof AuthenticatedSettingsBusinessHoursRoute
+  '/settings/chat': typeof AuthenticatedSettingsChatRoute
+  '/settings/custom-fields': typeof AuthenticatedSettingsCustomFieldsRoute
+  '/settings/inboxes': typeof AuthenticatedSettingsInboxesRoute
+  '/settings/invoices': typeof AuthenticatedSettingsInvoicesRoute
+  '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
+  '/settings/openai': typeof AuthenticatedSettingsOpenaiRoute
+  '/settings/roles': typeof AuthenticatedSettingsRolesRoute
+  '/settings/security': typeof AuthenticatedSettingsSecurityRoute
+  '/settings/tags': typeof AuthenticatedSettingsTagsRoute
+  '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/settings/teams': typeof AuthenticatedSettingsTeamsRoute
+  '/settings/webhooks': typeof AuthenticatedSettingsWebhooksRoute
+  '/settings/widget': typeof AuthenticatedSettingsWidgetRoute
+  '/settings/workspace-security': typeof AuthenticatedSettingsWorkspaceSecurityRoute
+  '/settings/workspaces': typeof AuthenticatedSettingsWorkspacesRoute
+  '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -179,8 +339,27 @@ export interface FileRoutesByTo {
   '/design': typeof AuthenticatedDesignRoute
   '/groups': typeof AuthenticatedGroupsRoute
   '/leads': typeof AuthenticatedLeadsRoute
-  '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
+  '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/auto-replies': typeof AuthenticatedSettingsAutoRepliesRoute
+  '/settings/billing': typeof AuthenticatedSettingsBillingRoute
+  '/settings/business-hours': typeof AuthenticatedSettingsBusinessHoursRoute
+  '/settings/chat': typeof AuthenticatedSettingsChatRoute
+  '/settings/custom-fields': typeof AuthenticatedSettingsCustomFieldsRoute
+  '/settings/inboxes': typeof AuthenticatedSettingsInboxesRoute
+  '/settings/invoices': typeof AuthenticatedSettingsInvoicesRoute
+  '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
+  '/settings/openai': typeof AuthenticatedSettingsOpenaiRoute
+  '/settings/roles': typeof AuthenticatedSettingsRolesRoute
+  '/settings/security': typeof AuthenticatedSettingsSecurityRoute
+  '/settings/tags': typeof AuthenticatedSettingsTagsRoute
+  '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/settings/teams': typeof AuthenticatedSettingsTeamsRoute
+  '/settings/webhooks': typeof AuthenticatedSettingsWebhooksRoute
+  '/settings/widget': typeof AuthenticatedSettingsWidgetRoute
+  '/settings/workspace-security': typeof AuthenticatedSettingsWorkspaceSecurityRoute
+  '/settings/workspaces': typeof AuthenticatedSettingsWorkspacesRoute
+  '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -203,8 +382,28 @@ export interface FileRoutesById {
   '/_authenticated/design': typeof AuthenticatedDesignRoute
   '/_authenticated/groups': typeof AuthenticatedGroupsRoute
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
-  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
+  '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/_authenticated/settings/auto-replies': typeof AuthenticatedSettingsAutoRepliesRoute
+  '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRoute
+  '/_authenticated/settings/business-hours': typeof AuthenticatedSettingsBusinessHoursRoute
+  '/_authenticated/settings/chat': typeof AuthenticatedSettingsChatRoute
+  '/_authenticated/settings/custom-fields': typeof AuthenticatedSettingsCustomFieldsRoute
+  '/_authenticated/settings/inboxes': typeof AuthenticatedSettingsInboxesRoute
+  '/_authenticated/settings/invoices': typeof AuthenticatedSettingsInvoicesRoute
+  '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
+  '/_authenticated/settings/openai': typeof AuthenticatedSettingsOpenaiRoute
+  '/_authenticated/settings/roles': typeof AuthenticatedSettingsRolesRoute
+  '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
+  '/_authenticated/settings/tags': typeof AuthenticatedSettingsTagsRoute
+  '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/_authenticated/settings/teams': typeof AuthenticatedSettingsTeamsRoute
+  '/_authenticated/settings/webhooks': typeof AuthenticatedSettingsWebhooksRoute
+  '/_authenticated/settings/widget': typeof AuthenticatedSettingsWidgetRoute
+  '/_authenticated/settings/workspace-security': typeof AuthenticatedSettingsWorkspaceSecurityRoute
+  '/_authenticated/settings/workspaces': typeof AuthenticatedSettingsWorkspacesRoute
+  '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -229,6 +428,26 @@ export interface FileRouteTypes {
     | '/leads'
     | '/settings'
     | '/templates'
+    | '/settings/appearance'
+    | '/settings/auto-replies'
+    | '/settings/billing'
+    | '/settings/business-hours'
+    | '/settings/chat'
+    | '/settings/custom-fields'
+    | '/settings/inboxes'
+    | '/settings/invoices'
+    | '/settings/notifications'
+    | '/settings/openai'
+    | '/settings/roles'
+    | '/settings/security'
+    | '/settings/tags'
+    | '/settings/team'
+    | '/settings/teams'
+    | '/settings/webhooks'
+    | '/settings/widget'
+    | '/settings/workspace-security'
+    | '/settings/workspaces'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -249,8 +468,27 @@ export interface FileRouteTypes {
     | '/design'
     | '/groups'
     | '/leads'
-    | '/settings'
     | '/templates'
+    | '/settings/appearance'
+    | '/settings/auto-replies'
+    | '/settings/billing'
+    | '/settings/business-hours'
+    | '/settings/chat'
+    | '/settings/custom-fields'
+    | '/settings/inboxes'
+    | '/settings/invoices'
+    | '/settings/notifications'
+    | '/settings/openai'
+    | '/settings/roles'
+    | '/settings/security'
+    | '/settings/tags'
+    | '/settings/team'
+    | '/settings/teams'
+    | '/settings/webhooks'
+    | '/settings/widget'
+    | '/settings/workspace-security'
+    | '/settings/workspaces'
+    | '/settings'
   id:
     | '__root__'
     | '/'
@@ -274,6 +512,26 @@ export interface FileRouteTypes {
     | '/_authenticated/leads'
     | '/_authenticated/settings'
     | '/_authenticated/templates'
+    | '/_authenticated/settings/appearance'
+    | '/_authenticated/settings/auto-replies'
+    | '/_authenticated/settings/billing'
+    | '/_authenticated/settings/business-hours'
+    | '/_authenticated/settings/chat'
+    | '/_authenticated/settings/custom-fields'
+    | '/_authenticated/settings/inboxes'
+    | '/_authenticated/settings/invoices'
+    | '/_authenticated/settings/notifications'
+    | '/_authenticated/settings/openai'
+    | '/_authenticated/settings/roles'
+    | '/_authenticated/settings/security'
+    | '/_authenticated/settings/tags'
+    | '/_authenticated/settings/team'
+    | '/_authenticated/settings/teams'
+    | '/_authenticated/settings/webhooks'
+    | '/_authenticated/settings/widget'
+    | '/_authenticated/settings/workspace-security'
+    | '/_authenticated/settings/workspaces'
+    | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -433,8 +691,203 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTemplatesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/settings/': {
+      id: '/_authenticated/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/appearance': {
+      id: '/_authenticated/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof AuthenticatedSettingsAppearanceRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/auto-replies': {
+      id: '/_authenticated/settings/auto-replies'
+      path: '/auto-replies'
+      fullPath: '/settings/auto-replies'
+      preLoaderRoute: typeof AuthenticatedSettingsAutoRepliesRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/billing': {
+      id: '/_authenticated/settings/billing'
+      path: '/billing'
+      fullPath: '/settings/billing'
+      preLoaderRoute: typeof AuthenticatedSettingsBillingRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/business-hours': {
+      id: '/_authenticated/settings/business-hours'
+      path: '/business-hours'
+      fullPath: '/settings/business-hours'
+      preLoaderRoute: typeof AuthenticatedSettingsBusinessHoursRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/chat': {
+      id: '/_authenticated/settings/chat'
+      path: '/chat'
+      fullPath: '/settings/chat'
+      preLoaderRoute: typeof AuthenticatedSettingsChatRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/custom-fields': {
+      id: '/_authenticated/settings/custom-fields'
+      path: '/custom-fields'
+      fullPath: '/settings/custom-fields'
+      preLoaderRoute: typeof AuthenticatedSettingsCustomFieldsRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/inboxes': {
+      id: '/_authenticated/settings/inboxes'
+      path: '/inboxes'
+      fullPath: '/settings/inboxes'
+      preLoaderRoute: typeof AuthenticatedSettingsInboxesRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/invoices': {
+      id: '/_authenticated/settings/invoices'
+      path: '/invoices'
+      fullPath: '/settings/invoices'
+      preLoaderRoute: typeof AuthenticatedSettingsInvoicesRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/notifications': {
+      id: '/_authenticated/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof AuthenticatedSettingsNotificationsRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/openai': {
+      id: '/_authenticated/settings/openai'
+      path: '/openai'
+      fullPath: '/settings/openai'
+      preLoaderRoute: typeof AuthenticatedSettingsOpenaiRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/roles': {
+      id: '/_authenticated/settings/roles'
+      path: '/roles'
+      fullPath: '/settings/roles'
+      preLoaderRoute: typeof AuthenticatedSettingsRolesRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/security': {
+      id: '/_authenticated/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof AuthenticatedSettingsSecurityRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/tags': {
+      id: '/_authenticated/settings/tags'
+      path: '/tags'
+      fullPath: '/settings/tags'
+      preLoaderRoute: typeof AuthenticatedSettingsTagsRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/team': {
+      id: '/_authenticated/settings/team'
+      path: '/team'
+      fullPath: '/settings/team'
+      preLoaderRoute: typeof AuthenticatedSettingsTeamRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/teams': {
+      id: '/_authenticated/settings/teams'
+      path: '/teams'
+      fullPath: '/settings/teams'
+      preLoaderRoute: typeof AuthenticatedSettingsTeamsRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/webhooks': {
+      id: '/_authenticated/settings/webhooks'
+      path: '/webhooks'
+      fullPath: '/settings/webhooks'
+      preLoaderRoute: typeof AuthenticatedSettingsWebhooksRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/widget': {
+      id: '/_authenticated/settings/widget'
+      path: '/widget'
+      fullPath: '/settings/widget'
+      preLoaderRoute: typeof AuthenticatedSettingsWidgetRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/workspace-security': {
+      id: '/_authenticated/settings/workspace-security'
+      path: '/workspace-security'
+      fullPath: '/settings/workspace-security'
+      preLoaderRoute: typeof AuthenticatedSettingsWorkspaceSecurityRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/workspaces': {
+      id: '/_authenticated/settings/workspaces'
+      path: '/workspaces'
+      fullPath: '/settings/workspaces'
+      preLoaderRoute: typeof AuthenticatedSettingsWorkspacesRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
   }
 }
+
+interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
+  AuthenticatedSettingsAutoRepliesRoute: typeof AuthenticatedSettingsAutoRepliesRoute
+  AuthenticatedSettingsBillingRoute: typeof AuthenticatedSettingsBillingRoute
+  AuthenticatedSettingsBusinessHoursRoute: typeof AuthenticatedSettingsBusinessHoursRoute
+  AuthenticatedSettingsChatRoute: typeof AuthenticatedSettingsChatRoute
+  AuthenticatedSettingsCustomFieldsRoute: typeof AuthenticatedSettingsCustomFieldsRoute
+  AuthenticatedSettingsInboxesRoute: typeof AuthenticatedSettingsInboxesRoute
+  AuthenticatedSettingsInvoicesRoute: typeof AuthenticatedSettingsInvoicesRoute
+  AuthenticatedSettingsNotificationsRoute: typeof AuthenticatedSettingsNotificationsRoute
+  AuthenticatedSettingsOpenaiRoute: typeof AuthenticatedSettingsOpenaiRoute
+  AuthenticatedSettingsRolesRoute: typeof AuthenticatedSettingsRolesRoute
+  AuthenticatedSettingsSecurityRoute: typeof AuthenticatedSettingsSecurityRoute
+  AuthenticatedSettingsTagsRoute: typeof AuthenticatedSettingsTagsRoute
+  AuthenticatedSettingsTeamRoute: typeof AuthenticatedSettingsTeamRoute
+  AuthenticatedSettingsTeamsRoute: typeof AuthenticatedSettingsTeamsRoute
+  AuthenticatedSettingsWebhooksRoute: typeof AuthenticatedSettingsWebhooksRoute
+  AuthenticatedSettingsWidgetRoute: typeof AuthenticatedSettingsWidgetRoute
+  AuthenticatedSettingsWorkspaceSecurityRoute: typeof AuthenticatedSettingsWorkspaceSecurityRoute
+  AuthenticatedSettingsWorkspacesRoute: typeof AuthenticatedSettingsWorkspacesRoute
+  AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
+}
+
+const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
+  AuthenticatedSettingsAutoRepliesRoute: AuthenticatedSettingsAutoRepliesRoute,
+  AuthenticatedSettingsBillingRoute: AuthenticatedSettingsBillingRoute,
+  AuthenticatedSettingsBusinessHoursRoute:
+    AuthenticatedSettingsBusinessHoursRoute,
+  AuthenticatedSettingsChatRoute: AuthenticatedSettingsChatRoute,
+  AuthenticatedSettingsCustomFieldsRoute:
+    AuthenticatedSettingsCustomFieldsRoute,
+  AuthenticatedSettingsInboxesRoute: AuthenticatedSettingsInboxesRoute,
+  AuthenticatedSettingsInvoicesRoute: AuthenticatedSettingsInvoicesRoute,
+  AuthenticatedSettingsNotificationsRoute:
+    AuthenticatedSettingsNotificationsRoute,
+  AuthenticatedSettingsOpenaiRoute: AuthenticatedSettingsOpenaiRoute,
+  AuthenticatedSettingsRolesRoute: AuthenticatedSettingsRolesRoute,
+  AuthenticatedSettingsSecurityRoute: AuthenticatedSettingsSecurityRoute,
+  AuthenticatedSettingsTagsRoute: AuthenticatedSettingsTagsRoute,
+  AuthenticatedSettingsTeamRoute: AuthenticatedSettingsTeamRoute,
+  AuthenticatedSettingsTeamsRoute: AuthenticatedSettingsTeamsRoute,
+  AuthenticatedSettingsWebhooksRoute: AuthenticatedSettingsWebhooksRoute,
+  AuthenticatedSettingsWidgetRoute: AuthenticatedSettingsWidgetRoute,
+  AuthenticatedSettingsWorkspaceSecurityRoute:
+    AuthenticatedSettingsWorkspaceSecurityRoute,
+  AuthenticatedSettingsWorkspacesRoute: AuthenticatedSettingsWorkspacesRoute,
+  AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
+}
+
+const AuthenticatedSettingsRouteWithChildren =
+  AuthenticatedSettingsRoute._addFileChildren(
+    AuthenticatedSettingsRouteChildren,
+  )
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdsRoute: typeof AuthenticatedAdsRoute
@@ -451,7 +904,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
   AuthenticatedGroupsRoute: typeof AuthenticatedGroupsRoute
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
-  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
 }
 
@@ -470,7 +923,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDesignRoute: AuthenticatedDesignRoute,
   AuthenticatedGroupsRoute: AuthenticatedGroupsRoute,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
-  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
 }
 

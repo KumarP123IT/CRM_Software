@@ -15,7 +15,6 @@ import {
   TrendingUp,
   ArrowRight,
   AlertTriangle,
-  Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, type ActivityItem, type OnboardingStep } from "@/api";
@@ -31,7 +30,7 @@ import {
   ProgressRing,
   StatCard,
 } from "@/components/shared";
-import { useAuth, useEffectiveRole } from "@/stores/auth";
+import { useAuth } from "@/stores/auth";
 import { usePermission } from "@/lib/permissions";
 import { formatNumber, timeAgo, timeOfDay } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -60,10 +59,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t(greetingKey(), { name: first })}
-        description={t("dashboard.subtitle")}
-      />
+      <PageHeader title={t(greetingKey(), { name: first })} description={t("dashboard.subtitle")} />
       <SetupChecklist />
       <Metrics />
       <div className="grid gap-6 lg:grid-cols-3">
@@ -155,9 +151,7 @@ function SetupChecklist() {
               >
                 {s.done && <Check className="size-3" aria-hidden />}
               </span>
-              <span className={cn(s.done && "line-through")}>
-                {t(`onboarding.${s.id}`)}
-              </span>
+              <span className={cn(s.done && "line-through")}>{t(`onboarding.${s.id}`)}</span>
             </button>
           </li>
         ))}
@@ -167,7 +161,7 @@ function SetupChecklist() {
 }
 
 function Metrics() {
-  const { can: canViewAnalytics } = usePermission("analytics.view");
+  const { allowed: canViewAnalytics } = usePermission("analytics.view");
   const q = useQuery({
     queryKey: ["dashboard", "stats"],
     queryFn: () => api.dashboard.stats(),
@@ -223,12 +217,11 @@ function Metrics() {
 }
 
 function AssignedChats({ userId }: { userId?: string | undefined }) {
-  const { can: canReply } = usePermission("conversation.reply");
+  const { allowed: canReply } = usePermission("conversation.reply");
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["conversations", "assigned", userId],
-    queryFn: () =>
-      api.conversations.list({ assigneeId: userId ?? "u1", pageSize: 6 }),
+    queryFn: () => api.conversations.list({ assigneeId: userId ?? "u1", pageSize: 6 }),
   });
   const resolve = useMutation({
     mutationFn: (id: string) => api.conversations.setStatus(id, "resolved"),
@@ -268,16 +261,12 @@ function AssignedChats({ userId }: { userId?: string | undefined }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate font-medium">{c.contactName}</span>
-                  {c.status === "pending" && (
-                    <Badge variant="secondary">Pending</Badge>
-                  )}
+                  {c.status === "pending" && <Badge variant="secondary">Pending</Badge>}
                   <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                     {timeAgo(c.lastMessageAt)}
                   </span>
                 </div>
-                <p className="truncate text-sm text-muted-foreground">
-                  {c.lastMessage}
-                </p>
+                <p className="truncate text-sm text-muted-foreground">{c.lastMessage}</p>
               </div>
               {c.unread > 0 && (
                 <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground tabular">
@@ -304,7 +293,7 @@ function AssignedChats({ userId }: { userId?: string | undefined }) {
 }
 
 function CallReminders() {
-  const { can: canViewAnalytics } = usePermission("analytics.view");
+  const { allowed: canViewAnalytics } = usePermission("analytics.view");
   const q = useQuery({
     queryKey: ["dashboard", "calls"],
     queryFn: () => api.dashboard.callReminders(),
@@ -337,10 +326,7 @@ function CallReminders() {
             return (
               <li
                 key={r.id}
-                className={cn(
-                  "rounded-md border p-3",
-                  past && "opacity-60 border-destructive/50",
-                )}
+                className={cn("rounded-md border p-3", past && "opacity-60 border-destructive/50")}
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium">{r.contactName}</span>
@@ -402,9 +388,7 @@ function RecentActivity() {
                   <p className="text-sm">
                     <span className="font-medium">{a.actorName}</span> {a.text}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {timeAgo(a.at)}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{timeAgo(a.at)}</p>
                 </div>
               </li>
             );

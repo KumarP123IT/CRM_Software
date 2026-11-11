@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
 import {
   FileText,
   Plus,
@@ -20,13 +19,8 @@ import {
   Edit,
   Copy,
 } from "lucide-react";
-import { api, type Template } from "@/api";
-import {
-  PageHeader,
-  EmptyState,
-  ErrorState,
-  ListSkeleton,
-} from "@/components/shared";
+import { api, type CreateTemplateInput, type Template } from "@/api";
+import { PageHeader, EmptyState, ErrorState, ListSkeleton } from "@/components/shared";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,7 +63,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/format";
 
-type TemplateStatus = "draft" | "pending" | "approved" | "rejected";
+type TemplateStatus = Template["status"];
 
 interface TemplateButton {
   id: string;
@@ -80,7 +74,6 @@ interface TemplateForm {
   name: string;
   category: "Marketing" | "Utility" | "Authentication";
   language: string;
-  status: TemplateStatus;
   headerMedia?: string;
   body: string;
   buttons: TemplateButton[];
@@ -88,18 +81,7 @@ interface TemplateForm {
 }
 
 const CATEGORIES = ["Marketing", "Utility", "Authentication"] as const;
-const LANGUAGES = [
-  "en",
-  "hi-en",
-  "hi",
-  "ta",
-  "te",
-  "bn",
-  "mr",
-  "gu",
-  "kn",
-  "ml",
-] as const;
+const LANGUAGES = ["en", "hi-en", "hi", "ta", "te", "bn", "mr", "gu", "kn", "ml"] as const;
 
 const STATUS_CONFIG: Record<
   TemplateStatus,
@@ -116,14 +98,12 @@ const STATUS_CONFIG: Record<
 };
 
 export function Templates() {
-  const { t } = useTranslation();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<Template | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
-    null,
-  );
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
   const q = useQuery({
     queryKey: ["templates"],
@@ -131,24 +111,63 @@ export function Templates() {
   });
 
   const filteredTemplates =
-    q.data?.filter((t) =>
-      t.name.toLowerCase().includes(search.toLowerCase()),
-    ) ?? [];
+    q.data?.filter((t) => t.name.toLowerCase().includes(search.toLowerCase())) ?? [];
+
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ["templates"] });
+  const onError = (e: unknown) =>
+    toast.error(e instanceof Error ? e.message : "Something went wrong");
 
   const submitForApproval = useMutation({
-    mutationFn: (id: string) => Promise.resolve(),
+    mutationFn: (id: string) => api.templates.submit(id),
     onSuccess: () => {
       toast.success("Template submitted for approval");
-      void qc.invalidateQueries({ queryKey: ["templates"] });
+      invalidate();
     },
+    onError,
+  });
+
+  const approveTemplate = useMutation({
+    mutationFn: (id: string) => api.templates.approve(id),
+    onSuccess: () => {
+      toast.success("Template approved");
+      invalidate();
+    },
+    onError,
+  });
+
+  const rejectTemplate = useMutation({
+    mutationFn: (id: string) => api.templates.reject(id),
+    onSuccess: () => {
+      toast.success("Template rejected");
+      invalidate();
+    },
+    onError,
   });
 
   const deleteTemplate = useMutation({
-    mutationFn: (id: string) => Promise.resolve(),
+    mutationFn: (id: string) => api.templates.remove(id),
     onSuccess: () => {
       toast.success("Template deleted");
-      void qc.invalidateQueries({ queryKey: ["templates"] });
+      invalidate();
     },
+    onError,
+  });
+
+  const duplicateTemplate = useMutation({
+    mutationFn: (template: Template) =>
+      api.templates.create({
+        name: `${template.name}_copy`.slice(0, 120),
+        category: template.category,
+        language: template.language,
+        body: template.body,
+        headerMedia: template.headerMedia,
+        buttons: template.buttons,
+      }),
+    onSuccess: () => {
+      toast.success("Template duplicated");
+      invalidate();
+    },
+    onError,
   });
 
   return (
@@ -207,14 +226,11 @@ export function Templates() {
               </TableHeader>
               <TableBody>
                 {filteredTemplates.map((template) => {
-                  const config =
-                    STATUS_CONFIG[template.status as TemplateStatus];
+                  const config = STATUS_CONFIG[template.status as TemplateStatus];
                   const StatusIcon = config.icon;
                   return (
                     <TableRow key={template.id}>
-                      <TableCell className="font-medium">
-                        {template.name}
-                      </TableCell>
+                      <TableCell className="font-medium">{template.name}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{template.category}</Badge>
                       </TableCell>
@@ -226,7 +242,7 @@ export function Templates() {
                         </Badge>
                         {template.status === "rejected" && (
                           <p className="text-xs text-destructive mt-1">
-                            Rejected: Incomplete header
+                            Rejected: {template.rejectionReason ?? "Rejected by provider"}
                           </p>
                         )}
                       </TableCell>
@@ -247,24 +263,44 @@ export function Templates() {
                               <Eye className="mr-2 size-4" />
                               Preview
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditing(template);
+                                setCreateOpen(true);
+                              }}
+                            >
                               <Edit className="mr-2 size-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => duplicateTemplate.mutate(template)}>
                               <Copy className="mr-2 size-4" />
                               Duplicate
                             </DropdownMenuItem>
-                            {template.status === "draft" && (
+                            {(template.status === "draft" || template.status === "rejected") && (
                               <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    submitForApproval.mutate(template.id)
-                                  }
+                                  onClick={() => submitForApproval.mutate(template.id)}
                                 >
                                   <Send className="mr-2 size-4" />
                                   Submit for approval
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {template.status === "pending" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => approveTemplate.mutate(template.id)}
+                                >
+                                  <Check className="mr-2 size-4" />
+                                  Approve
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => rejectTemplate.mutate(template.id)}
+                                >
+                                  <X className="mr-2 size-4" />
+                                  Reject
                                 </DropdownMenuItem>
                               </>
                             )}
@@ -289,7 +325,14 @@ export function Templates() {
       </Card>
 
       {/* Create/Edit Dialog */}
-      <TemplateDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <TemplateDialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) setEditing(null);
+        }}
+        template={editing}
+      />
 
       {/* Preview Dialog */}
       <TemplatePreviewDialog
@@ -304,27 +347,60 @@ export function Templates() {
 function TemplateDialog({
   open,
   onOpenChange,
+  template,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  template?: Template | null;
 }) {
-  const [form, setForm] = useState<TemplateForm>({
+  const qc = useQueryClient();
+  const emptyForm: TemplateForm = {
     name: "",
     category: "Utility",
     language: "en",
-    status: "draft",
     body: "",
     buttons: [],
-  });
+  };
+  const [form, setForm] = useState<TemplateForm>(emptyForm);
   const [headerMedia, setHeaderMedia] = useState<File | null>(null);
+
+  // Reset the form whenever the dialog opens (create vs. edit target).
+  useEffect(() => {
+    if (!open) return;
+    setHeaderMedia(null);
+    setForm(
+      template
+        ? {
+            name: template.name,
+            category: template.category,
+            language: template.language,
+            body: template.body,
+            buttons: (template.buttons ?? []).map((b, i) => ({
+              id: b.id ?? `btn${i + 1}`,
+              text: b.text,
+            })),
+            ...(template.headerMedia ? { headerMedia: template.headerMedia } : {}),
+          }
+        : emptyForm,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, template]);
+
+  const save = useMutation({
+    mutationFn: (input: CreateTemplateInput) =>
+      template ? api.templates.update(template.id, input) : api.templates.create(input),
+    onSuccess: () => {
+      toast.success(template ? "Template updated" : "Template saved as draft");
+      void qc.invalidateQueries({ queryKey: ["templates"] });
+      onOpenChange(false);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Something went wrong"),
+  });
 
   const addButton = () => {
     setForm({
       ...form,
-      buttons: [
-        ...form.buttons,
-        { id: `btn${form.buttons.length + 1}`, text: "" },
-      ],
+      buttons: [...form.buttons, { id: `btn${form.buttons.length + 1}`, text: "" }],
     });
   };
 
@@ -343,8 +419,16 @@ function TemplateDialog({
   };
 
   const handleSubmit = () => {
-    toast.success("Template saved as draft");
-    onOpenChange(false);
+    save.mutate({
+      name: form.name.trim(),
+      category: form.category,
+      language: form.language,
+      body: form.body,
+      buttons: form.buttons
+        .filter((b) => b.text.trim())
+        .map((b) => ({ id: b.id, text: b.text.trim() })),
+      ...(form.headerMedia ? { headerMedia: form.headerMedia } : {}),
+    });
   };
 
   // Extract variables from body ({{1}}, {{2}}, etc.)
@@ -354,10 +438,11 @@ function TemplateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create message template</DialogTitle>
+          <DialogTitle>
+            {template ? "Edit message template" : "Create message template"}
+          </DialogTitle>
           <DialogDescription>
-            Templates must be approved by WhatsApp before use. Use variables
-            like {"{"}
+            Templates must be approved by WhatsApp before use. Use variables like {"{"}
             {"}{"} 1 {"}"}
             {"}"} to personalize messages.
           </DialogDescription>
@@ -381,8 +466,8 @@ function TemplateDialog({
                 <Label>Category</Label>
                 <Select
                   value={form.category}
-                  onValueChange={(v: string) =>
-                    setForm({ ...form, category: v })
+                  onValueChange={(v) =>
+                    setForm({ ...form, category: v as TemplateForm["category"] })
                   }
                 >
                   <SelectTrigger>
@@ -427,18 +512,12 @@ function TemplateDialog({
                   className="flex-1"
                 />
                 {headerMedia && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setHeaderMedia(null)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setHeaderMedia(null)}>
                     <X className="size-4" />
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Recommended: 1120x1120px, max 5MB
-              </p>
+              <p className="text-xs text-muted-foreground">Recommended: 1120x1120px, max 5MB</p>
             </div>
 
             <div className="space-y-2">
@@ -478,11 +557,7 @@ function TemplateDialog({
                       value={btn.text}
                       onChange={(e) => updateButton(btn.id, e.target.value)}
                     />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeButton(btn.id)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => removeButton(btn.id)}>
                       <X className="size-4" />
                     </Button>
                   </div>
@@ -494,11 +569,7 @@ function TemplateDialog({
           {/* Preview */}
           <div className="space-y-4">
             <Label>WhatsApp preview</Label>
-            <WhatsAppPreview
-              headerMedia={headerMedia}
-              body={form.body}
-              buttons={form.buttons}
-            />
+            <WhatsAppPreview headerMedia={headerMedia} body={form.body} buttons={form.buttons} />
           </div>
         </div>
 
@@ -506,8 +577,8 @@ function TemplateDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!form.name || !form.body}>
-            Save as draft
+          <Button onClick={handleSubmit} disabled={!form.name || !form.body || save.isPending}>
+            {template ? "Save changes" : "Save as draft"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -544,11 +615,7 @@ function WhatsAppPreview({
 
         {/* Message body */}
         <div className="rounded-lg bg-white p-3 shadow-sm">
-          {body || (
-            <p className="text-gray-400 italic">
-              Your message will appear here...
-            </p>
-          )}
+          {body || <p className="text-gray-400 italic">Your message will appear here...</p>}
         </div>
 
         {/* Buttons */}
@@ -591,11 +658,7 @@ function TemplatePreviewDialog({
         </DialogHeader>
 
         <div className="py-4">
-          <WhatsAppPreview
-            headerMedia={null}
-            body={template.body}
-            buttons={[]}
-          />
+          <WhatsAppPreview headerMedia={null} body={template.body} buttons={[]} />
         </div>
 
         <DialogFooter>

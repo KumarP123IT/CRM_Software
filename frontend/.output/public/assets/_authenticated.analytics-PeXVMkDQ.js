@@ -1,1 +1,0 @@
-import{h as e}from"./button-CEbCQwcK.js";import{t}from"./chart-column-jbwwhB_A.js";import{t as n}from"./ComingSoon-D0W3N7oy.js";var r=e(),i=()=>(0,r.jsx)(n,{title:`Analytics`,description:`How your team and messages are doing.`,icon:t,emptyTitle:`Nothing here yet`,emptyText:`How your team and messages are doing.`,cta:`Get started`});export{i as component};

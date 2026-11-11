@@ -1,14 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import {
-  Megaphone,
-  MessageSquare,
-  Moon,
-  Sun,
-  UserPlus,
-  Target,
-} from "lucide-react";
+import { Megaphone, MessageSquare, Moon, Sun, UserPlus, Target } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -48,18 +41,12 @@ export function CommandPalette() {
     <CommandDialog open={paletteOpen} onOpenChange={setPaletteOpen}>
       <CommandInput placeholder="Search people, chats, pages or actions…" />
       <CommandList>
-        <CommandEmpty>
-          Nothing matches that. Try a name or phone number.
-        </CommandEmpty>
+        <CommandEmpty>Nothing matches that. Try a name or phone number.</CommandEmpty>
         <CommandGroup heading="Actions">
-          <CommandItem
-            onSelect={() => go(() => toast("New contact form is coming soon"))}
-          >
+          <CommandItem onSelect={() => go(() => toast("New contact form is coming soon"))}>
             <UserPlus /> Add a contact
           </CommandItem>
-          <CommandItem
-            onSelect={() => go(() => navigate({ to: "/broadcasts" }))}
-          >
+          <CommandItem onSelect={() => go(() => navigate({ to: "/broadcasts" }))}>
             <Megaphone /> Send a broadcast
           </CommandItem>
           <CommandItem onSelect={() => go(() => navigate({ to: "/leads" }))}>
@@ -75,10 +62,7 @@ export function CommandPalette() {
         <CommandSeparator />
         <CommandGroup heading="Pages">
           {ALL_NAV.map((n) => (
-            <CommandItem
-              key={n.key}
-              onSelect={() => go(() => navigate({ to: n.to }))}
-            >
+            <CommandItem key={n.key} onSelect={() => go(() => navigate({ to: n.to }))}>
               <n.icon /> {t(`nav.${n.key}`)}
             </CommandItem>
           ))}
@@ -94,9 +78,7 @@ export function CommandPalette() {
                 <MessageSquare />
                 <span className="truncate">
                   <span className="font-medium">{c.contactName}</span>{" "}
-                  <span className="text-muted-foreground">
-                    — {c.lastMessage}
-                  </span>
+                  <span className="text-muted-foreground">— {c.lastMessage}</span>
                 </span>
               </CommandItem>
             ))}
@@ -112,9 +94,7 @@ export function CommandPalette() {
               >
                 <PresenceAvatar name={c.name} size="sm" />
                 <span className="flex-1 truncate">{c.name}</span>
-                <span className="text-xs tabular text-muted-foreground">
-                  {c.phone}
-                </span>
+                <span className="text-xs tabular text-muted-foreground">{c.phone}</span>
               </CommandItem>
             ))}
           </CommandGroup>

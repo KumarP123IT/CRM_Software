@@ -1,0 +1,21 @@
+import type { ReactNode } from "react";
+import { PageHeader } from "@/components/shared";
+
+export function SettingsPage({
+  title,
+  description,
+  actions,
+  children,
+}: {
+  title: string;
+  description: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-6">
+      <PageHeader title={title} description={description} actions={actions} />
+      {children}
+    </div>
+  );
+}
