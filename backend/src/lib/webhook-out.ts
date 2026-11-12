@@ -9,6 +9,7 @@ export const WEBHOOK_EVENTS = [
   "conversation.created",
   "conversation.assigned",
   "conversation.status_changed",
+  "conversation.sla_breached",
   "contact.created",
   "lead.created",
   "broadcast.sent",

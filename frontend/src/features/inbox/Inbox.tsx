@@ -112,6 +112,11 @@ export function Inbox() {
   // Realtime: invalidate on inbound/outbound message events.
   useEffect(() => {
     return api.conversations.subscribe((event) => {
+      if (event.type === "conversation") {
+        void qc.invalidateQueries({ queryKey: ["conversations"] });
+        void qc.invalidateQueries({ queryKey: ["conversation", event.conversationId] });
+        return;
+      }
       if (event.type !== "message") return;
       void qc.invalidateQueries({ queryKey: ["conversations"] });
       void qc.invalidateQueries({ queryKey: ["conversation-messages", event.conversationId] });

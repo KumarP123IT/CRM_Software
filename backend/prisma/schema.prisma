@@ -35,6 +35,10 @@ model Workspace {
   openaiKeyMasked    String?
   // Hostnames allowed to embed the web chat widget. Empty = allow all origins.
   widgetAllowedDomains String[] @default([])
+  // First-response SLA in minutes; 0 disables SLA tracking/breach detection.
+  slaMinutes       Int      @default(15)
+  // Auto-resolve conversations idle longer than this; 0 disables auto-close.
+  autoCloseMinutes Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -305,6 +309,8 @@ model Conversation {
   slaDueAt         DateTime?
   windowClosesAt   DateTime?
   snoozedUntil     DateTime?
+  // Set once when the first-response SLA is breached — idempotency marker.
+  slaBreachedAt    DateTime?
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
@@ -564,6 +570,8 @@ model CallReminder {
   note        String    @default("")
   at          DateTime
   done        Boolean   @default(false)
+  // Set when the scheduler has surfaced this reminder — idempotency marker.
+  notifiedAt  DateTime?
   createdById String?
   createdAt   DateTime  @default(now())
 
@@ -610,6 +618,8 @@ model AutoReply {
   trigger     String   @default("keyword")
   keywords    String[] @default([])
   response    String
+  // Wait this long after the triggering message before replying; 0 = immediate.
+  delaySeconds Int      @default(0)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

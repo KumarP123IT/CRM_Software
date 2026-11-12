@@ -7,6 +7,7 @@ import {
   recipientExternalId,
   toApiMessage,
 } from "./inbox.js";
+import { enqueueDelayedAutoReply } from "./scheduler.js";
 
 const BODY_PREVIEW_LEN = 140;
 const MAX_AUTOMATED_PER_INBOUND = 2;
@@ -18,6 +19,8 @@ export interface BotTrigger {
   type: BotTriggerType;
   keywords?: string[];
   response: string;
+  /** Wait this long after the trigger before replying; 0/absent = immediate. */
+  delaySeconds?: number;
 }
 
 interface DayHours {
@@ -34,7 +37,12 @@ function isValidTrigger(t: unknown): t is BotTrigger {
     typeof o.response === "string" &&
     o.response.trim().length > 0 &&
     (o.keywords === undefined ||
-      (Array.isArray(o.keywords) && o.keywords.every((k) => typeof k === "string")))
+      (Array.isArray(o.keywords) && o.keywords.every((k) => typeof k === "string"))) &&
+    (o.delaySeconds === undefined ||
+      (typeof o.delaySeconds === "number" &&
+        Number.isFinite(o.delaySeconds) &&
+        o.delaySeconds >= 0 &&
+        o.delaySeconds <= 86400))
   );
 }
 
@@ -95,7 +103,7 @@ function keywordMatch(keywords: string[], text: string): boolean {
 }
 
 /** Deliver an automated outbound text message (no human author). */
-async function sendAutomated(
+export async function sendAutomated(
   account: ChannelAccount,
   conversationId: string,
   contactId: string,
@@ -200,7 +208,9 @@ export async function runAutomation(
 
   interface Candidate {
     body: string;
-    botId?: string;
+    delaySeconds: number;
+    sourceKind: "autoReply" | "bot";
+    sourceId: string;
   }
   const candidates: Candidate[] = [];
 
@@ -210,7 +220,14 @@ export async function runAutomation(
       (rule.trigger === "outside_hours" && outsideHours) ||
       (rule.trigger === "first_message" && isFirstMessage) ||
       (rule.trigger === "keyword" && keywordMatch(rule.keywords, text));
-    if (hit) candidates.push({ body: rule.response });
+    if (hit) {
+      candidates.push({
+        body: rule.response,
+        delaySeconds: rule.delaySeconds,
+        sourceKind: "autoReply",
+        sourceId: rule.id,
+      });
+    }
   }
   for (const bot of bots) {
     const trigger = parseBotTrigger(bot.trigger);
@@ -219,7 +236,14 @@ export async function runAutomation(
       (trigger.type === "outside_hours" && outsideHours) ||
       (trigger.type === "first_message" && isFirstMessage) ||
       (trigger.type === "keyword" && keywordMatch(trigger.keywords ?? [], text));
-    if (hit) candidates.push({ body: trigger.response, botId: bot.id });
+    if (hit) {
+      candidates.push({
+        body: trigger.response,
+        delaySeconds: trigger.delaySeconds ?? 0,
+        sourceKind: "bot",
+        sourceId: bot.id,
+      });
+    }
   }
 
   // Dedupe identical bodies, cap sends.
@@ -231,10 +255,27 @@ export async function runAutomation(
     const key = c.body.trim().toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
+    if (c.delaySeconds > 0) {
+      // Delayed reply — the scheduler fires it later, self-invalidating if a
+      // newer inbound lands first or the rule is disabled meanwhile.
+      await enqueueDelayedAutoReply({
+        workspaceId,
+        conversationId,
+        accountId: account.id,
+        contactId: conversation.contactId,
+        body: c.body,
+        triggerMessageId: inbound.id,
+        delaySeconds: c.delaySeconds,
+        sourceKind: c.sourceKind,
+        sourceId: c.sourceId,
+      });
+      sent++;
+      continue;
+    }
     const msg = await sendAutomated(account, conversationId, conversation.contactId, c.body);
     if (msg && msg.status !== "failed") {
       sent++;
-      if (c.botId) firedBotIds.push(c.botId);
+      if (c.sourceKind === "bot") firedBotIds.push(c.sourceId);
     }
   }
 

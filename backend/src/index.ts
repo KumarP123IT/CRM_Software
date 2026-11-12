@@ -1,6 +1,7 @@
 import { buildApp } from "./app.js";
 import { config } from "./config.js";
 import { closeQueues } from "./lib/jobs.js";
+import { closeScheduler } from "./lib/scheduler.js";
 import { prisma } from "./lib/prisma.js";
 import { initSentry, closeSentry } from "./lib/sentry.js";
 
@@ -34,6 +35,7 @@ async function shutdown(signal: string): Promise<void> {
     // Stop accepting new connections and drain in-flight requests.
     await app.close();
     await closeQueues();
+    await closeScheduler();
     await prisma.$disconnect();
     await closeSentry();
   } catch (err) {

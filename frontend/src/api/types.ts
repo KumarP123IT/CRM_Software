@@ -107,6 +107,8 @@ export type InboxTab = "mine" | "unassigned" | "all";
 
 export type InboxEvent =
   | { type: "message"; conversationId: ID; message: Message }
+  | { type: "conversation"; conversationId: ID; conversation?: unknown }
+  | { type: "call-reminder"; reminder: unknown }
   | { type: "typing"; conversationId: ID; on: boolean };
 
 export interface ConversationListParams extends ListParams {

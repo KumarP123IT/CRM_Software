@@ -159,12 +159,21 @@ describe("outbound webhooks", () => {
     // Trigger contact.created via contact create.
     await a.post("/api/contacts").send({ name: "Hooked", phone: "+917777777777" });
 
-    const deliveries = await a.get(`/api/webhook-endpoints/${created.body.id}/deliveries`);
-    expect(deliveries.status).toBe(200);
-    // Delivery attempted (fails to reach example.com in test env is fine —
-    // the row proves the pipeline ran).
-    expect(deliveries.body.length).toBeGreaterThanOrEqual(1);
-    expect(deliveries.body[0].event).toBe("contact.created");
+    // emitWorkspaceEvent is fire-and-forget — poll until the delivery row
+    // lands (delivery itself may fail to reach example.com; the row proves
+    // the pipeline ran).
+    let rows: { event: string }[] = [];
+    for (let i = 0; i < 40; i++) {
+      const res = await a.get(`/api/webhook-endpoints/${created.body.id}/deliveries`);
+      expect(res.status).toBe(200);
+      if (res.body.length >= 1) {
+        rows = res.body;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    expect(rows.length).toBeGreaterThanOrEqual(1);
+    expect(rows[0]!.event).toBe("contact.created");
   });
 
   it("rejects webhook URLs that resolve to private or reserved addresses", async () => {

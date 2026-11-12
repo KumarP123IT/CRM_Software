@@ -47,6 +47,7 @@ import {
   startMailWorker,
   startWebhookWorker,
 } from "./lib/jobs.js";
+import { startSchedulerWorker } from "./lib/scheduler.js";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -183,5 +184,6 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   startChannelInboundWorker();
   startBroadcastWorker();
   startWebhookWorker();
+  await startSchedulerWorker();
   return app;
 }

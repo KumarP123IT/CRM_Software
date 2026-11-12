@@ -146,6 +146,15 @@ async function resolveConversation(
   });
   if (open) return open;
   const now = new Date();
+  // First-response SLA clock starts with the conversation; 0 disables it.
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: account.workspaceId },
+    select: { slaMinutes: true },
+  });
+  const slaDueAt =
+    workspace && workspace.slaMinutes > 0
+      ? new Date(now.getTime() + workspace.slaMinutes * 60_000)
+      : null;
   const conversation = await prisma.conversation.create({
     data: {
       workspaceId: account.workspaceId,
@@ -153,6 +162,7 @@ async function resolveConversation(
       channelAccountId: account.id,
       channel: account.type,
       status: "open",
+      slaDueAt,
       windowClosesAt: account.type === "whatsapp" ? new Date(now.getTime() + WHATSAPP_WINDOW_MS) : null,
     },
   });
@@ -457,6 +467,8 @@ export async function sendReply(
       data: {
         lastMessage: (input.body || `[${input.kind}]`).slice(0, BODY_PREVIEW_LEN),
         lastMessageAt: message.sentAt,
+        // A human reply satisfies the first-response SLA.
+        slaDueAt: null,
       },
     });
   }

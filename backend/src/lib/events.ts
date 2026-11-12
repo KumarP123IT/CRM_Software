@@ -4,7 +4,8 @@
  */
 export type InboxRealtimeEvent =
   | { type: "message"; conversationId: string; message: unknown }
-  | { type: "conversation"; conversation: unknown }
+  | { type: "conversation"; conversationId: string; conversation?: unknown }
+  | { type: "call-reminder"; reminder: unknown }
   | { type: "typing"; conversationId: string; on: boolean };
 
 const hubs = new Map<string, Set<(event: InboxRealtimeEvent) => void>>();

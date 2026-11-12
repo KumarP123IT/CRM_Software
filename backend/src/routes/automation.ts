@@ -28,6 +28,8 @@ const autoReplySchema = z.object({
   trigger: z.enum(TRIGGERS),
   keywords: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
   response: z.string().trim().min(1).max(2000),
+  // Seconds to wait after the trigger before sending; 0 = immediate.
+  delaySeconds: z.number().int().min(0).max(86400).default(0),
   active: z.boolean().optional(),
 });
 
@@ -47,6 +49,7 @@ function toApiAutoReply(r: {
   trigger: string;
   keywords: string[];
   response: string;
+  delaySeconds: number;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -57,6 +60,7 @@ function toApiAutoReply(r: {
     trigger: r.trigger,
     keywords: r.keywords,
     response: r.response,
+    delaySeconds: r.delaySeconds,
     active: r.active,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
@@ -138,6 +142,7 @@ export async function automationRoutes(fastify: FastifyInstance) {
           trigger: input.trigger,
           keywords: input.keywords,
           response: input.response,
+          delaySeconds: input.delaySeconds,
           ...(input.active !== undefined ? { active: input.active } : {}),
         },
       });
@@ -167,6 +172,7 @@ export async function automationRoutes(fastify: FastifyInstance) {
           ...(input.trigger !== undefined ? { trigger: input.trigger } : {}),
           ...(input.keywords !== undefined ? { keywords: input.keywords } : {}),
           ...(input.response !== undefined ? { response: input.response } : {}),
+          ...(input.delaySeconds !== undefined ? { delaySeconds: input.delaySeconds } : {}),
           ...(input.active !== undefined ? { active: input.active } : {}),
         },
       });
