@@ -1,4 +1,5 @@
 import { Queue, Worker, type Job } from "bullmq";
+import nodemailer, { type Transporter } from "nodemailer";
 import { config, isTest } from "../config.js";
 import { redis } from "./redis.js";
 import { prisma } from "./prisma.js";
@@ -38,10 +39,32 @@ export function getMailQueue(): Queue<MailJobData> {
   return mailQueue;
 }
 
+let mailTransporter: Transporter | null = null;
+
+function getMailTransporter(): Transporter {
+  if (!mailTransporter) {
+    mailTransporter = nodemailer.createTransport({
+      host: config.SMTP_HOST,
+      port: config.SMTP_PORT,
+      secure: config.SMTP_SECURE,
+      ...(config.SMTP_USER ? { auth: { user: config.SMTP_USER, pass: config.SMTP_PASS ?? "" } } : {}),
+    });
+  }
+  return mailTransporter;
+}
+
 export async function handleMailJob(data: MailJobData): Promise<void> {
-  // No SMTP provider wired yet — record and log. Swap for a real provider in Phase 7.
   sentEmails.push({ ...data, at: new Date().toISOString() });
-  console.log(`[mail] to=${data.to} subject="${data.subject}"`);
+  if (config.SMTP_HOST) {
+    await getMailTransporter().sendMail({
+      from: config.SMTP_FROM,
+      to: data.to,
+      subject: data.subject,
+      text: data.text,
+    });
+  } else {
+    console.log(`[mail] to=${data.to} subject="${data.subject}"`);
+  }
 }
 
 async function processMail(job: Job<MailJobData>): Promise<void> {

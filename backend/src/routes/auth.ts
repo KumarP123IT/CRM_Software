@@ -331,7 +331,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       await enqueueMail({
         to: user.email,
         subject: "Reset your Konvo password",
-        text: `Reset your password: http://localhost:3000/reset-password?token=${token}\nThis link expires in 1 hour.`,
+        text: `Reset your password: ${config.FRONTEND_URL ?? "http://localhost:3000"}/reset-password?token=${token}\nThis link expires in 1 hour.`,
       });
       await audit(prisma, {
         userId: user.id,

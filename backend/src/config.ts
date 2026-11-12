@@ -28,6 +28,18 @@ const envSchema = z.object({
   RATE_LIMIT_SCALE: z.coerce.number().positive().default(1),
   // Public base URL of this API — used to register provider webhooks (e.g. Telegram).
   PUBLIC_URL: z.string().optional(),
+  // Public base URL of the frontend — used in emails (password reset links).
+  FRONTEND_URL: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
+  // Outbound SMTP for transactional mail. If SMTP_HOST is unset, mail is only
+  // logged (dev/test) — password reset cannot deliver in that mode.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: z
+    .preprocess((v) => v === "true" || v === true, z.boolean())
+    .default(false),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().default("Konvo <no-reply@localhost>"),
   // WhatsApp Cloud API app credentials (Embedded Signup).
   WHATSAPP_APP_ID: z.string().optional(),
   WHATSAPP_APP_SECRET: z.string().optional(),
@@ -42,3 +54,23 @@ if (!parsed.success) {
 export const config = parsed.data;
 export const isProd = config.NODE_ENV === "production";
 export const isTest = config.NODE_ENV === "test";
+
+if (isProd) {
+  const problems: string[] = [];
+  if (/change-me|placeholder|example/i.test(config.JWT_SECRET)) {
+    problems.push("JWT_SECRET is still a placeholder value");
+  }
+  if (/^0+$/.test(config.ENCRYPTION_KEY) || config.ENCRYPTION_KEY.length < 64) {
+    problems.push("ENCRYPTION_KEY is still a placeholder value");
+  }
+  if (problems.length) {
+    console.error(`Refusing to start in production: ${problems.join("; ")}`);
+    process.exit(1);
+  }
+  if (!config.SMTP_HOST) {
+    console.warn("WARNING: SMTP_HOST is not set — outbound email (e.g. password reset) will only be logged, not delivered.");
+  }
+  if (!config.FRONTEND_URL) {
+    console.warn("WARNING: FRONTEND_URL is not set — email links will fall back to http://localhost:3000.");
+  }
+}

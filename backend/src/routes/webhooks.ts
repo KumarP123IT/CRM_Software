@@ -31,7 +31,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
   );
 
   // GET /webhooks/whatsapp/:accountId — Meta webhook verification handshake.
-  fastify.get("/whatsapp/:accountId", async (request, reply) => {
+  // Public provider webhooks are exempt from the global rate limit: Meta and
+  // Telegram send bursts from a few IPs that would otherwise hit 429s.
+  fastify.get("/whatsapp/:accountId", { config: { rateLimit: false } }, async (request, reply) => {
     const { accountId } = request.params as { accountId: string };
     const q = z
       .object({
@@ -57,7 +59,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
   });
 
   // GET /webhooks/web/:accountId/thread — widget polls for new messages.
-  fastify.get("/web/:accountId/thread", async (request) => {
+  fastify.get("/web/:accountId/thread", { config: { rateLimit: false } }, async (request) => {
     const { accountId } = request.params as { accountId: string };
     const q = z
       .object({ visitorId: z.string().min(1).max(200), limit: z.coerce.number().int().min(1).max(100).default(50) })
@@ -84,7 +86,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
   });
 
   // POST /webhooks/:type/:accountId — inbound provider events.
-  fastify.post("/:type/:accountId", async (request, reply) => {
+  fastify.post("/:type/:accountId", { config: { rateLimit: false } }, async (request, reply) => {
     const { type, accountId } = request.params as { type: string; accountId: string };
     if (!CHANNEL_TYPES.includes(type as (typeof CHANNEL_TYPES)[number])) {
       throw badRequest("unknown_channel", "Unknown channel type");
