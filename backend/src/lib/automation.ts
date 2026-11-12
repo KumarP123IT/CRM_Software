@@ -176,17 +176,24 @@ export async function runAutomation(
 ): Promise<void> {
   if (inbound.direction !== "in" || inbound.kind !== "text" || !inbound.body.trim()) return;
 
-  const [conversation, businessHours, autoReplies, bots, messageCount] = await Promise.all([
-    prisma.conversation.findFirst({
-      where: { id: conversationId, workspaceId },
-      select: { id: true, contactId: true, channelAccountId: true, channel: true },
-    }),
-    prisma.businessHours.findUnique({ where: { workspaceId } }),
-    prisma.autoReply.findMany({ where: { workspaceId, active: true } }),
-    prisma.bot.findMany({ where: { workspaceId, active: true } }),
-    prisma.message.count({ where: { conversationId } }),
-  ]);
+  const [conversation, businessHours, autoReplies, bots, messageCount] =
+    await Promise.all([
+      prisma.conversation.findFirst({
+        where: { id: conversationId, workspaceId },
+        select: { id: true, contactId: true, channelAccountId: true, channel: true },
+      }),
+      prisma.businessHours.findUnique({ where: { workspaceId } }),
+      prisma.autoReply.findMany({ where: { workspaceId, active: true } }),
+      prisma.bot.findMany({ where: { workspaceId, active: true } }),
+      prisma.message.count({ where: { conversationId } }),
+    ]);
   if (!conversation) return;
+  // Never send automated messages to an opted-out contact.
+  const contactRow = await prisma.contact.findUnique({
+    where: { id: conversation.contactId },
+    select: { optedOut: true },
+  });
+  if (contactRow?.optedOut) return;
 
   const account = conversation.channelAccountId
     ? await prisma.channelAccount.findFirst({

@@ -86,6 +86,14 @@ export async function handleDelayedAutoReply(d: DelayedAutoReply): Promise<void>
   });
   if (!conversation || conversation.status === "resolved") return;
 
+  // Opted-out contacts must not receive automated replies — STOP may have
+  // arrived while this job was pending.
+  const contactRow = await prisma.contact.findUnique({
+    where: { id: conversation.contactId },
+    select: { optedOut: true },
+  });
+  if (contactRow?.optedOut) return;
+
   const latestInbound = await prisma.message.findFirst({
     where: { conversationId: d.conversationId, direction: "in" },
     orderBy: { sentAt: "desc" },

@@ -8,6 +8,7 @@ import { publishInbox } from "./events.js";
 import { getAdapter, type ChannelCredentials, type InboundMessageEvent } from "../channels/index.js";
 import type { DeliveryStatusEvent } from "../channels/types.js";
 import { badRequest, notFound } from "./errors.js";
+import { detectOptOutKeyword } from "./optout.js";
 import { recountBroadcast } from "./broadcasts.js";
 
 /* ---------- API shapes (mirror frontend Conversation/Message contracts) ---------- */
@@ -276,6 +277,22 @@ export async function ingestInbound(
       data: { lastSeenAt: sentAt },
     });
 
+    // STOP/START family keywords flip the contact's opt-out flag. STOP also
+    // suppresses automation for this message — never auto-reply to an opt-out.
+    const optChange = detectOptOutKeyword(event.text ?? "");
+    if (optChange) {
+      const optedOut = optChange === "out";
+      await prisma.contact.update({
+        where: { id: contactId },
+        data: { optedOut },
+      });
+      void emitWorkspaceEvent(account.workspaceId, "contact.opt_out_changed", {
+        contactId,
+        optedOut,
+        keyword: (event.text ?? "").trim().slice(0, 40),
+      });
+    }
+
     publishInbox(account.workspaceId, {
       type: "message",
       conversationId: conversation.id,
@@ -290,10 +307,13 @@ export async function ingestInbound(
     });
 
     // Automation: auto-replies, bots, business-hours away messages.
-    try {
-      await runAutomation(account.workspaceId, conversation.id, message);
-    } catch {
-      // Automation failures must not break message ingest.
+    // Skipped entirely when this message was an opt-out signal.
+    if (optChange !== "out") {
+      try {
+        await runAutomation(account.workspaceId, conversation.id, message);
+      } catch {
+        // Automation failures must not break message ingest.
+      }
     }
   }
   return stored;
