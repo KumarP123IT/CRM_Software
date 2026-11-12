@@ -10,6 +10,7 @@ import {
   sendRecipientChunk,
 } from "./broadcasts.js";
 import { decryptSecret, signPayload } from "./webhook-out.js";
+import { assertPublicUrl } from "./ssrf.js";
 
 export interface MailJobData {
   to: string;
@@ -270,6 +271,8 @@ async function deliverWebhook(deliveryId: string): Promise<void> {
 
   const attempts = delivery.attempts + 1;
   try {
+    // Re-validate at connect time — DNS answers can change after registration.
+    await assertPublicUrl(delivery.webhook.url);
     const res = await fetch(delivery.webhook.url, {
       method: "POST",
       headers,

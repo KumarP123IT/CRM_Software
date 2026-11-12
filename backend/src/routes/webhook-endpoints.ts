@@ -9,6 +9,7 @@ import {
   newWebhookSecret,
 } from "../lib/webhook-out.js";
 import { enqueueWebhookDelivery } from "../lib/jobs.js";
+import { assertPublicUrl } from "../lib/ssrf.js";
 import {
   requireAuth,
   resolveWorkspace,
@@ -76,6 +77,7 @@ export async function webhookEndpointRoutes(fastify: FastifyInstance) {
     { preHandler: requirePermission("settings.manage") },
     async (request, reply) => {
       const input = createSchema.parse(request.body);
+      await assertPublicUrl(input.url);
       const secret = newWebhookSecret();
       const hook = await prisma.webhook.create({
         data: {
@@ -106,6 +108,7 @@ export async function webhookEndpointRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { id } = request.params as { id: string };
       const input = updateSchema.parse(request.body);
+      if (input.url !== undefined) await assertPublicUrl(input.url);
       const existing = await prisma.webhook.findFirst({
         where: { id, workspaceId: request.workspaceId, channelAccountId: null },
       });

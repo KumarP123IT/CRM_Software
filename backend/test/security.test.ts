@@ -150,7 +150,7 @@ describe("outbound webhooks", () => {
     const a = await register("hooks@t.in", "hooks-co");
 
     const created = await a.post("/api/webhook-endpoints").send({
-      url: "https://127.0.0.1:9/hook",
+      url: "https://example.com/hook",
       events: ["message.created", "contact.created"],
     });
     expect(created.status).toBe(201);
@@ -165,5 +165,25 @@ describe("outbound webhooks", () => {
     // the row proves the pipeline ran).
     expect(deliveries.body.length).toBeGreaterThanOrEqual(1);
     expect(deliveries.body[0].event).toBe("contact.created");
+  });
+
+  it("rejects webhook URLs that resolve to private or reserved addresses", async () => {
+    const a = await register("hooks2@t.in", "hooks-co-2");
+    for (const url of [
+      "https://127.0.0.1/hook",
+      "https://169.254.169.254/latest/meta-data",
+      "https://192.168.1.1/hook",
+      "https://10.0.0.5/hook",
+      "https://[::1]/hook",
+    ]) {
+      const res = await a.post("/api/webhook-endpoints").send({ url, events: ["*"] });
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe("url_not_allowed");
+    }
+    // Plain http is rejected by schema validation before the SSRF check.
+    const http = await a
+      .post("/api/webhook-endpoints")
+      .send({ url: "http://example.com/hook", events: ["*"] });
+    expect(http.status).toBe(400);
   });
 });
