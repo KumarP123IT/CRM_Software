@@ -17,6 +17,7 @@ export interface Workspace {
   name: string;
   plan: "Starter" | "Growth" | "Pro";
   city: string;
+  widgetAllowedDomains?: string[] | undefined;
 }
 
 export interface CustomField {

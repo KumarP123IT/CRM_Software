@@ -4,9 +4,17 @@ import { prisma } from "../lib/prisma.js";
 import { audit } from "../lib/audit.js";
 import { resolveWorkspace, requirePermission, requireAuth } from "../plugins/auth.js";
 
+const domainSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(255)
+  .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/, "Must be a bare domain like example.com");
+
 const updateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   city: z.string().trim().max(120).optional(),
+  widgetAllowedDomains: z.array(domainSchema).max(50).optional(),
 });
 
 export async function workspaceRoutes(fastify: FastifyInstance) {
@@ -17,7 +25,7 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
     const memberships = await prisma.membership.findMany({
       where: { userId: request.userId },
       include: {
-        workspace: { select: { id: true, name: true, slug: true, plan: true, city: true } },
+        workspace: { select: { id: true, name: true, slug: true, plan: true, city: true, widgetAllowedDomains: true } },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -30,7 +38,7 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
     async (request) => {
       const workspace = await prisma.workspace.findUniqueOrThrow({
         where: { id: request.workspaceId },
-        select: { id: true, name: true, slug: true, plan: true, city: true },
+        select: { id: true, name: true, slug: true, plan: true, city: true, widgetAllowedDomains: true },
       });
       return { ...workspace, role: request.membershipRole };
     },
@@ -46,8 +54,9 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
         data: {
           ...(body.name !== undefined ? { name: body.name } : {}),
           ...(body.city !== undefined ? { city: body.city } : {}),
+          ...(body.widgetAllowedDomains !== undefined ? { widgetAllowedDomains: body.widgetAllowedDomains } : {}),
         },
-        select: { id: true, name: true, slug: true, plan: true, city: true },
+        select: { id: true, name: true, slug: true, plan: true, city: true, widgetAllowedDomains: true },
       });
       await audit(prisma, {
         workspaceId: request.workspaceId,
