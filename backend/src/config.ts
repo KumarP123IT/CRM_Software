@@ -41,10 +41,10 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().default("Konvo <no-reply@localhost>"),
   // Grace period: accept legacy client-supplied widget visitorId values.
-  // Set to "false" after the migration window to require signed visitor tokens.
+  // Defaults to false — set "true" only while migrating sites off legacy ids.
   WIDGET_LEGACY_VISITOR_ID: z
     .preprocess((v) => v === "true" || v === true, z.boolean())
-    .default(true),
+    .default(false),
   // WhatsApp Cloud API app credentials (Embedded Signup).
   WHATSAPP_APP_ID: z.string().optional(),
   WHATSAPP_APP_SECRET: z.string().optional(),

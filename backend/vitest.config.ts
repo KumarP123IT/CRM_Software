@@ -15,6 +15,8 @@ export default defineConfig({
       RATE_LIMIT_SCALE: "1000",
       WHATSAPP_APP_ID: "test-app-id",
       WHATSAPP_APP_SECRET: "test-app-secret",
+      // Tests cover the legacy visitorId upgrade path; production defaults off.
+      WIDGET_LEGACY_VISITOR_ID: "true",
     },
     // Test files share one Postgres database — run serially to avoid truncates racing.
     fileParallelism: false,

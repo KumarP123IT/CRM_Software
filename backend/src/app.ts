@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
@@ -33,6 +33,7 @@ import { webhookEndpointRoutes } from "./routes/webhook-endpoints.js";
 import { apiKeyRoutes } from "./routes/api-keys.js";
 import { securityRoutes } from "./routes/security.js";
 import { healthRoutes } from "./routes/health.js";
+import { WIDGET_SCRIPT } from "./lib/widget-script.js";
 import {
   startBroadcastWorker,
   startChannelInboundWorker,
@@ -59,8 +60,18 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   app.decorate("prisma", prisma);
 
   await app.register(cors, {
-    origin: config.CORS_ORIGIN.split(",").map((s) => s.trim()),
-    credentials: true,
+    // Public widget endpoints (/api/webhooks/web/*) are embedded on arbitrary
+    // customer sites, so they allow any origin without credentials. Everything
+    // else stays restricted to CORS_ORIGIN.
+    delegator: async (req: FastifyRequest) => {
+      const isWidget = req.url.startsWith("/api/webhooks/web/");
+      return {
+        origin: isWidget
+          ? "*"
+          : config.CORS_ORIGIN.split(",").map((s) => s.trim()),
+        credentials: !isWidget,
+      };
+    },
   });
   await app.register(cookie);
   await app.register(jwt, { secret: config.JWT_SECRET });
@@ -129,6 +140,14 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
     },
     { prefix: "/api" },
   );
+
+  // Embeddable chat widget — the snippet in settings points here.
+  app.get("/widget.js", async (_request, reply) => {
+    return reply
+      .header("content-type", "application/javascript; charset=utf-8")
+      .header("cache-control", "public, max-age=300")
+      .send(WIDGET_SCRIPT);
+  });
 
   startMailWorker();
   startChannelInboundWorker();

@@ -9,7 +9,11 @@ export const httpApi: Api = {
     forgotPassword: (body) => http("/auth/forgot-password", { method: "POST", body }),
     checkSlug: (slug) => http(`/auth/check-slug?slug=${slug}`),
   },
-  workspaces: { list: () => http("/workspaces") },
+  workspaces: {
+    list: () => http("/workspaces"),
+    get: (id) => http(`/workspaces/${id}`),
+    update: (id, input) => http(`/workspaces/${id}`, { method: "PATCH", body: input }),
+  },
   contacts: {
     list: (p?: ContactListParams) =>
       http("/contacts", {

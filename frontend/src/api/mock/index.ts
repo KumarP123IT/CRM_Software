@@ -50,7 +50,9 @@ import type {
   UpdateCampaignInput,
   UpdateLeadInput,
   UpdateTemplateInput,
+  UpdateWorkspaceInput,
   User,
+  ID,
 } from "../types";
 import { HttpError } from "../http";
 import * as db from "./data";
@@ -714,6 +716,19 @@ export const mockApi: Api = {
     async list() {
       await latency();
       return db.workspaces;
+    },
+    async get(id: ID) {
+      await latency();
+      const ws = db.workspaces.find((w) => w.id === id);
+      if (!ws) throw new Error("Workspace not found");
+      return { ...ws };
+    },
+    async update(id: ID, input: UpdateWorkspaceInput) {
+      await latency();
+      const ws = db.workspaces.find((w) => w.id === id);
+      if (!ws) throw new Error("Workspace not found");
+      Object.assign(ws, input);
+      return { ...ws };
     },
   },
   contacts: {

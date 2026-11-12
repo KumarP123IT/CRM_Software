@@ -595,8 +595,15 @@ export interface AuthApi {
   forgotPassword(input: { email: string }): Promise<void>;
   checkSlug(slug: string): Promise<{ available: boolean }>;
 }
+export interface UpdateWorkspaceInput {
+  name?: string | undefined;
+  city?: string | undefined;
+  widgetAllowedDomains?: string[] | undefined;
+}
 export interface WorkspacesApi {
   list(): Promise<Workspace[]>;
+  get(id: ID): Promise<Workspace>;
+  update(id: ID, input: UpdateWorkspaceInput): Promise<Workspace>;
 }
 export interface ContactListParams extends ListParams {
   tag?: string | undefined;

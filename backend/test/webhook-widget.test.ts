@@ -31,6 +31,38 @@ async function workspaceId() {
 }
 
 describe("widget visitor tokens", () => {
+  it("serves the embeddable widget script at /widget.js", async () => {
+    const res = await agent().get("/widget.js");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("javascript");
+    expect(res.text).toContain("/token");
+    expect(res.text).toContain("visitorToken");
+  });
+
+  it("allows any Origin on widget endpoints but keeps the API restricted", async () => {
+    const { accountId } = await setupWidget();
+
+    // Preflight from an arbitrary customer domain succeeds on widget paths.
+    const preflight = await agent()
+      .options(`/api/webhooks/web/${accountId}/thread`)
+      .set("Origin", "https://customer-site.com")
+      .set("Access-Control-Request-Method", "GET");
+    expect(preflight.headers["access-control-allow-origin"]).toBe("*");
+
+    // Actual widget call also gets the wildcard header.
+    const call = await agent()
+      .get(`/api/webhooks/web/${accountId}/thread?visitorId=v1`)
+      .set("Origin", "https://customer-site.com");
+    expect(call.status).toBe(200);
+    expect(call.headers["access-control-allow-origin"]).toBe("*");
+
+    // Non-widget API routes still reject foreign origins.
+    const api = await agent()
+      .get("/api/contacts")
+      .set("Origin", "https://customer-site.com");
+    expect(api.headers["access-control-allow-origin"]).not.toBe("*");
+  });
+
   it("accepts a legacy visitorId, then upgrades to a signed token for the same visitor", async () => {
     const { accountId, widgetToken } = await setupWidget();
 
