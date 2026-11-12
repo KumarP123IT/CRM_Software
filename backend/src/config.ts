@@ -48,6 +48,10 @@ const envSchema = z.object({
   // WhatsApp Cloud API app credentials (Embedded Signup).
   WHATSAPP_APP_ID: z.string().optional(),
   WHATSAPP_APP_SECRET: z.string().optional(),
+  // pino log level (trace|debug|info|warn|error|fatal). Default "info".
+  LOG_LEVEL: z.string().optional(),
+  // Sentry DSN — error reporting is disabled entirely when unset.
+  SENTRY_DSN: z.preprocess((v) => (v === "" ? undefined : v), z.string().optional()),
 });
 
 const parsed = envSchema.safeParse(process.env);

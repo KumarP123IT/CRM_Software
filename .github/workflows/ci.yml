@@ -43,15 +43,35 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npx prisma generate
-      # Tests expect both `konvo` and `konvo_test` databases.
-      - name: Create test database
-        run: PGPASSWORD=konvo psql -h localhost -p 5433 -U konvo -d konvo -c "CREATE DATABASE konvo_test"
-      - run: npx prisma db push
+      # Tests expect both `konvo` and `konvo_test` databases; `konvo_upgrade`
+      # is a scratch DB for the migrate-upgrade check below.
+      - name: Create test databases
+        run: |
+          PGPASSWORD=konvo psql -h localhost -p 5433 -U konvo -d konvo -c "CREATE DATABASE konvo_test"
+          PGPASSWORD=konvo psql -h localhost -p 5433 -U konvo -d konvo -c "CREATE DATABASE konvo_upgrade"
+      - name: Migrate fresh database
+        run: npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://konvo:konvo@localhost:5433/konvo_test
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
+      - name: Migrate upgrade path (previous schema -> latest)
+        env:
+          DATABASE_URL: postgresql://konvo:konvo@localhost:5433/konvo_upgrade
+        run: |
+          # Simulate an existing install: apply every migration except the
+          # newest by hand, mark them applied, then let `migrate deploy`
+          # apply the remainder — this is the path production upgrades take.
+          latest=$(ls prisma/migrations | grep -v migration_lock.toml | sort | tail -1)
+          for dir in $(ls prisma/migrations | grep -v migration_lock.toml | grep -v "^${latest}$" | sort); do
+            PGPASSWORD=konvo psql -h localhost -p 5433 -U konvo -d konvo_upgrade -v ON_ERROR_STOP=1 -f "prisma/migrations/$dir/migration.sql" > /dev/null
+            npx prisma migrate resolve --applied "$dir"
+          done
+          npx prisma migrate deploy
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
 
   frontend:
     runs-on: ubuntu-latest

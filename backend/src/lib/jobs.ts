@@ -10,7 +10,11 @@ import {
   sendRecipientChunk,
 } from "./broadcasts.js";
 import { decryptSecret, signPayload } from "./webhook-out.js";
-import { assertPublicUrl } from "./ssrf.js";
+import { pinnedDispatcher, resolvePublicTarget } from "./ssrf.js";
+
+// Node's fetch types come from undici-types while our Agent comes from the
+// undici package — same runtime, nominally different types. Bridge once here.
+type FetchDispatcher = NonNullable<RequestInit["dispatcher"]>;
 
 export interface MailJobData {
   to: string;
@@ -64,7 +68,8 @@ export async function handleMailJob(data: MailJobData): Promise<void> {
       text: data.text,
     });
   } else {
-    console.log(`[mail] to=${data.to} subject="${data.subject}"`);
+    // Recipient address is personal data — don't write it to logs.
+    console.log(`[mail] subject="${data.subject}" (recipient redacted)`);
   }
 }
 
@@ -270,16 +275,23 @@ async function deliverWebhook(deliveryId: string): Promise<void> {
   }
 
   const attempts = delivery.attempts + 1;
+  let dispatcher: FetchDispatcher | undefined;
   try {
-    // Re-validate at connect time — DNS answers can change after registration.
-    await assertPublicUrl(delivery.webhook.url);
-    const res = await fetch(delivery.webhook.url, {
+    // Re-validate and pin at connect time — DNS answers can change after
+    // registration, and the pinned lookup prevents a rebind between the check
+    // and the socket connect.
+    const target = await resolvePublicTarget(delivery.webhook.url);
+    dispatcher = pinnedDispatcher(target) as unknown as FetchDispatcher;
+    const res = await fetch(target.url, {
       method: "POST",
       headers,
       body,
       signal: AbortSignal.timeout(10_000),
       redirect: "manual",
+      dispatcher,
     });
+    // We only need the status — drop the body so the socket closes cleanly.
+    await res.body?.cancel().catch(() => undefined);
     if (res.ok) {
       await prisma.webhookDelivery.update({
         where: { id: delivery.id },
@@ -313,6 +325,8 @@ async function deliverWebhook(deliveryId: string): Promise<void> {
         throw err;
       }
     }
+  } finally {
+    await dispatcher?.close().catch(() => undefined);
   }
 }
 

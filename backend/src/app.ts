@@ -1,10 +1,16 @@
-import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
+import Fastify, {
+  type FastifyInstance,
+  type FastifyRequest,
+  type FastifyServerOptions,
+} from "fastify";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
 import rateLimit from "@fastify/rate-limit";
 import { ZodError } from "zod";
-import { config } from "./config.js";
+import { config, isTest } from "./config.js";
+import { pinoOptions } from "./lib/logger.js";
+import { captureException } from "./lib/sentry.js";
 import { prisma } from "./lib/prisma.js";
 import { AppError } from "./lib/errors.js";
 import { authenticate } from "./plugins/auth.js";
@@ -33,6 +39,7 @@ import { webhookEndpointRoutes } from "./routes/webhook-endpoints.js";
 import { apiKeyRoutes } from "./routes/api-keys.js";
 import { securityRoutes } from "./routes/security.js";
 import { healthRoutes } from "./routes/health.js";
+import { createHash } from "node:crypto";
 import { WIDGET_SCRIPT } from "./lib/widget-script.js";
 import {
   startBroadcastWorker,
@@ -48,12 +55,19 @@ declare module "fastify" {
 }
 
 export interface BuildAppOptions {
-  logger?: boolean;
+  /** true = default pino, false = off, object = custom pino options. */
+  logger?: boolean | FastifyServerOptions["logger"];
 }
 
 export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInstance> {
+  const logger =
+    opts.logger !== undefined
+      ? opts.logger
+      : isTest
+        ? false
+        : pinoOptions;
   const app = Fastify({
-    logger: opts.logger ?? config.NODE_ENV !== "test",
+    logger,
     trustProxy: true,
   });
 
@@ -102,12 +116,18 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
         .send({ code: "bad_request", message: (error as Error).message });
     }
     request.log.error(error);
+    captureException(error);
     return reply.status(500).send({ code: "internal_error", message: "Something went wrong" });
   });
 
   app.setNotFoundHandler((_request, reply) => {
     reply.status(404).send({ code: "not_found", message: "Not found" });
   });
+
+  // Ops probes live at the root (not under /api) so load balancers and
+  // orchestrators can hit them without knowing the API prefix. They are also
+  // registered under /api for backwards compatibility.
+  await app.register(healthRoutes);
 
   await app.register(
     async (api) => {
@@ -142,10 +162,20 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   );
 
   // Embeddable chat widget — the snippet in settings points here.
-  app.get("/widget.js", async (_request, reply) => {
+  // Loaded via a cross-origin <script> tag, so it must opt out of
+  // Cross-Origin-Resource-Policy (helmet-style defaults would block it) and
+  // be sniff-proof. ETag + short cache keep repeat page loads cheap.
+  const widgetEtag = `W/"${createHash("sha256").update(WIDGET_SCRIPT).digest("hex")}"`;
+  app.get("/widget.js", async (request, reply) => {
+    if (request.headers["if-none-match"] === widgetEtag) {
+      return reply.status(304).send();
+    }
     return reply
       .header("content-type", "application/javascript; charset=utf-8")
       .header("cache-control", "public, max-age=300")
+      .header("etag", widgetEtag)
+      .header("cross-origin-resource-policy", "cross-origin")
+      .header("x-content-type-options", "nosniff")
       .send(WIDGET_SCRIPT);
   });
 

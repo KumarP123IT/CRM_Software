@@ -1,15 +1,21 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { Agent, type Dispatcher } from "undici";
 import { badRequest } from "./errors.js";
 
 /**
  * SSRF guard for user-supplied URLs (outbound webhooks).
  *
- * assertPublicUrl resolves the hostname and rejects anything that maps to a
- * non-public address: loopback, private, link-local (incl. cloud metadata
- * 169.254.169.254), CGNAT, multicast and reserved ranges — for both IPv4 and
- * IPv6 (including IPv4-mapped IPv6). Call it at registration time AND again
- * right before connecting, since DNS answers can change.
+ * resolvePublicTarget resolves the hostname once, rejects anything that maps
+ * to a non-public address (loopback, private, link-local incl. cloud metadata
+ * 169.254.169.254, CGNAT, multicast, reserved — IPv4 and IPv6 incl.
+ * IPv4-mapped), and restricts the URL to https on the default port.
+ *
+ * pinnedDispatcher returns an undici Agent whose connect.lookup is pinned to
+ * exactly the addresses that were validated, so the socket cannot be rebound
+ * to a private IP by a second DNS answer (DNS-rebinding gap). Redirects are
+ * not followed by callers (redirect: "manual"), so no second host is ever
+ * contacted.
  */
 
 function isPrivateV4(ip: string): boolean {
@@ -53,11 +59,18 @@ export function isPrivateIp(ip: string): boolean {
   return true; // not an IP literal — unsafe
 }
 
+export interface PublicUrlTarget {
+  url: URL;
+  /** Validated addresses the hostname resolved to — pin the socket to these. */
+  addresses: { address: string; family: number }[];
+}
+
 /**
- * Validate that a URL is https and resolves only to public addresses.
- * Throws AppError(400, "url_not_allowed") otherwise. Returns the parsed URL.
+ * Validate that a URL is https on the default port and resolves only to
+ * public addresses. Returns the parsed URL plus the validated addresses for
+ * pinning. Throws AppError(400, "url_not_allowed") otherwise.
  */
-export async function assertPublicUrl(raw: string): Promise<URL> {
+export async function resolvePublicTarget(raw: string): Promise<PublicUrlTarget> {
   let url: URL;
   try {
     url = new URL(raw);
@@ -67,23 +80,68 @@ export async function assertPublicUrl(raw: string): Promise<URL> {
   if (url.protocol !== "https:") {
     throw badRequest("url_not_allowed", "Webhook URL must use https");
   }
+  // Only the default https port — no exfiltration to odd ports / internal
+  // services listening on non-standard ports.
+  if (url.port !== "" && url.port !== "443") {
+    throw badRequest("url_not_allowed", "Webhook URL must use port 443");
+  }
   const host = url.hostname.replace(/^\[|\]$/g, "");
-  let addresses: string[];
+  let addresses: { address: string; family: number }[];
   if (isIP(host)) {
-    addresses = [host];
+    addresses = [{ address: host, family: isIP(host) }];
   } else {
     try {
       const records = await lookup(host, { all: true, verbatim: true });
-      addresses = records.map((r) => r.address);
+      addresses = records.map((r) => ({ address: r.address, family: r.family }));
     } catch {
       throw badRequest("url_not_allowed", "Webhook host could not be resolved");
     }
   }
-  if (addresses.length === 0 || addresses.some(isPrivateIp)) {
+  if (addresses.length === 0 || addresses.some((a) => isPrivateIp(a.address))) {
     throw badRequest(
       "url_not_allowed",
       "Webhook URL resolves to a private or reserved address",
     );
   }
-  return url;
+  return { url, addresses };
+}
+
+/**
+ * Registration-time check — validates the URL but does not pin (the socket
+ * is not opened here). Delivery must use resolvePublicTarget + pinnedDispatcher.
+ */
+export async function assertPublicUrl(raw: string): Promise<URL> {
+  return (await resolvePublicTarget(raw)).url;
+}
+
+type LookupCallback = (
+  err: NodeJS.ErrnoException | null,
+  address: string | { address: string; family: number }[],
+  family?: number,
+) => void;
+
+/**
+ * undici Agent that always connects to the pre-validated addresses for the
+ * webhook host, ignoring any fresh DNS answer. This closes the DNS-rebinding
+ * window between assert-time resolution and connect-time resolution.
+ */
+export function pinnedDispatcher(target: PublicUrlTarget): Dispatcher {
+  const { addresses } = target;
+  const pinnedLookup = (
+    _hostname: string,
+    options: unknown,
+    callback: LookupCallback,
+  ) => {
+    const wantsAll =
+      typeof options === "object" && options !== null &&
+      (options as { all?: boolean }).all === true;
+    if (wantsAll) {
+      callback(null, addresses);
+    } else {
+      callback(null, addresses[0]!.address, addresses[0]!.family);
+    }
+  };
+  return new Agent({
+    connect: { lookup: pinnedLookup as never },
+  });
 }
