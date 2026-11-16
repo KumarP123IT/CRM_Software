@@ -21,7 +21,7 @@ async function main() {
   });
 
   const people: { name: string; email: string; role: Role }[] = [
-    { name: "Asha Rao", email: "asha@demo.in", role: "owner" },
+    { name: "John Doe", email: "john@demo.in", role: "owner" },
     { name: "Vikram Shah", email: "vikram@demo.in", role: "admin" },
     { name: "Priya Nair", email: "priya@demo.in", role: "manager" },
     { name: "Rahul Verma", email: "rahul@demo.in", role: "agent" },
@@ -162,7 +162,7 @@ async function main() {
   });
 
   console.log(`Seeded workspace "${workspace.name}" (slug: demo).`);
-  console.log(`Login: asha@demo.in / ${DEMO_PASSWORD} (owner) — roles: admin, manager, agent, readonly also seeded.`);
+  console.log(`Login: john@demo.in / ${DEMO_PASSWORD} (owner) — roles: admin, manager, agent, readonly also seeded.`);
 }
 
 main()
