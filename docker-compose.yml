@@ -1,41 +1,69 @@
+# Konvo — VPS deployment per VPS_DEPLOYMENT_PLAYBOOK.
+#
+#   cp .env.example .env   # fill in passwords, secrets and public URLs
+#   docker compose up -d --build
+#
+# Project folder on the VPS: /opt/konvo
+# Only konvo_nginx is public (NGINX_HOST_PORT). Postgres, Redis, backend and
+# frontend stay on the internal konvo_network; backend/frontend are also
+# published on 127.0.0.1 for debugging only.
+
 services:
   db:
     image: postgres:16-alpine
+    container_name: konvo_db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: konvo
-      POSTGRES_PASSWORD: konvo
-      POSTGRES_DB: konvo
-    # Bound to localhost only — reachable for local dev, not exposed publicly.
-    ports:
-      - "127.0.0.1:5433:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-konvo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-konvo}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U konvo"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      - konvo_network
+    # NO "ports:" — DB is never exposed, not even on localhost.
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "127.0.0.1:6379:6379"
+    container_name: konvo_redis
+    # AOF persistence so queued BullMQ jobs survive a Redis restart.
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}"]
+    volumes:
+      - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli --no-auth-warning -a \"$${REDIS_PASSWORD}\" ping | grep -q PONG",
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      - konvo_network
+    # NO "ports:" — internal only.
 
   backend:
     build: ./backend
+    container_name: konvo_backend
+    restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://konvo:konvo@db:5432/konvo
-      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-konvo}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-konvo}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env}
-      COOKIE_SECURE: "true"
+      # MUST be "false" on plain http://IP:port — browsers reject Secure
+      # cookies over HTTP and login would silently fail. "true" only behind HTTPS.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       PUBLIC_URL: ${PUBLIC_URL:-}
       FRONTEND_URL: ${FRONTEND_URL:-}
@@ -45,13 +73,19 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-Konvo <no-reply@localhost>}
+      WHATSAPP_APP_ID: ${WHATSAPP_APP_ID:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
       WIDGET_LEGACY_VISITOR_ID: ${WIDGET_LEGACY_VISITOR_ID:-false}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
-      - "4000:4000"
+      - "127.0.0.1:${BACKEND_HOST_PORT:-8012}:4000"   # debugging only
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/health >/dev/null 2>&1 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:4000/health >/dev/null 2>&1 || exit 1",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -61,18 +95,58 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - konvo_network
 
   frontend:
     build:
       context: ./frontend
       args:
-        # Inlined into the client bundle at build time.
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000/api}
+        # Inlined into the client bundle at build time. "/api" keeps requests
+        # same-origin; nginx routes them to the backend.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
         VITE_USE_MOCKS: ${VITE_USE_MOCKS:-false}
+    container_name: konvo_frontend
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-3612}:3000"  # debugging only
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - konvo_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: konvo_nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${NGINX_HOST_PORT:-8531}:8531"   # the ONLY public port
+    depends_on:
+      - frontend
       - backend
+    networks:
+      - konvo_network
 
 volumes:
-  pgdata:
+  postgres_data:
+    name: konvo_postgres_data
+  redisdata:
+    name: konvo_redisdata
+
+networks:
+  konvo_network:
+    name: konvo_network
+    driver: bridge

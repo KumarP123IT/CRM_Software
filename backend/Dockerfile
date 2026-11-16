@@ -13,7 +13,9 @@ FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 # Prisma CLI (devDependency) is needed for `migrate deploy` at container start.
-RUN npm install -g prisma@6
+# Pinned to the version in package-lock.json — a floating `prisma@6` can
+# resolve to a CLI that rejects the schema or writes a different migrations table.
+RUN npm install -g prisma@6.19.3
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist

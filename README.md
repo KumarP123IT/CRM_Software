@@ -26,6 +26,66 @@ npm --prefix frontend run dev         # UI on :3000
 Or everything at once: `docker compose up --build` (set `JWT_SECRET` and
 `ENCRYPTION_KEY` in a root `.env` first — see `backend/.env.example`).
 
+## Deploy to a VPS
+
+Follows `VPS_DEPLOYMENT_PLAYBOOK`: one folder (`/opt/konvo`), one compose
+project, one docker network. Postgres, Redis, the API and the frontend run
+in containers; nginx is the only public port. (Jenkins already runs on this
+VPS separately — it is not part of this stack.)
+
+```bash
+# 1. On the VPS:
+cd /opt && git clone <repo-url> konvo && cd konvo
+
+# 2. Check the ports are free:
+sudo ss -tlnp | grep -E '8531|8012|3612'   # must print nothing
+
+# 3. Configure
+cp .env.example .env && nano .env          # chmod 600 .env
+#    Fill in: POSTGRES_PASSWORD, REDIS_PASSWORD, JWT_SECRET, ENCRYPTION_KEY
+#    (openssl rand -hex 24 / -hex 32), FRONTEND_URL, PUBLIC_URL, CORS_ORIGIN
+#    — all http://<vps-ip>:8531 for IP:port access.
+#    Keep COOKIE_SECURE=false on plain HTTP or login cookies are rejected.
+
+# 4. Build and start
+docker compose up -d --build
+docker compose ps
+
+# 5. Check it
+curl http://127.0.0.1:8531/health    # {"status":"ok"}
+curl http://127.0.0.1:8531/ready     # 200 only when Postgres + Redis answer
+# Browser: http://<vps-ip>:8531
+```
+
+How traffic flows: `nginx.conf` (mounted as the container's full
+`/etc/nginx/nginx.conf`) listens on :8531 and routes `/api/*`, `/widget.js`,
+`/health` and `/ready` to the backend, everything else to the frontend — a
+**single origin**, so the httpOnly auth cookies stay first-party. It uses
+`Host $http_host` (keeps the port) and SSE is unbuffered. Postgres and Redis
+have **no host port at all** — they live only on `konvo_network`.
+Backend/frontend are additionally published on `127.0.0.1:8012`/`3612` for
+debugging.
+
+Notes:
+
+- `JWT_SECRET`, `ENCRYPTION_KEY`, `POSTGRES_PASSWORD` and `REDIS_PASSWORD`
+  are required — compose refuses to start without them, and the backend
+  refuses placeholder secrets in production. DB/Redis passwords must be
+  hex/alphanumeric (they're interpolated into connection URLs).
+- `prisma migrate deploy` runs automatically on every backend container
+  start, so redeploys apply pending migrations.
+- Redis uses AOF persistence; Postgres uses the `konvo_postgres_data` volume.
+- Backups: since the DB has no host port, dump via compose:
+  `docker compose exec -T db pg_dump -U konvo konvo | gzip > backup.sql.gz`
+  (or `scripts/backup.sh` with `DATABASE_URL` pointed through an SSH tunnel /
+  `docker compose exec`).
+- Updates: `git pull && docker compose up -d --build --force-recreate`;
+  frontend changes need `docker compose build --no-cache frontend`.
+- To put the app behind a domain + HTTPS later: follow playbook §10 — add a
+  server block on the host nginx for your domain proxying to
+  `127.0.0.1:8531`, then set `COOKIE_SECURE=true` and update the
+  `*_URL`/`CORS_ORIGIN` values to `https://…`.
+
 ## Health probes
 
 | Endpoint | Meaning | Use for |
