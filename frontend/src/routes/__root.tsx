@@ -11,7 +11,8 @@ import {
 import type { ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import "../lib/i18n";
+import i18n from "../lib/i18n";
+import { I18nextProvider } from "react-i18next";
 import { ThemeProvider } from "@/lib/theme";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
@@ -123,12 +124,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider delayDuration={200}>
-          <Outlet />
-          <Toaster position="bottom-right" />
-        </TooltipProvider>
-      </ThemeProvider>
+      <I18nextProvider i18n={i18n}>
+        <ThemeProvider>
+          <TooltipProvider delayDuration={200}>
+            <Outlet />
+            <Toaster position="bottom-right" />
+          </TooltipProvider>
+        </ThemeProvider>
+      </I18nextProvider>
     </QueryClientProvider>
   );
 }
